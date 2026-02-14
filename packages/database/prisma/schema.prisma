@@ -1,0 +1,725 @@
+// Shrampi - Shrimp Farm Management System
+// Full Prisma Schema — 9 Modules, 32+ Models
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Module 1: User & Access Management
+// ============================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  avatar       String?
+  companyId    String?  @map("company_id")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company   Company?   @relation(fields: [companyId], references: [id])
+  userRoles UserRole[]
+  auditLogs AuditLog[]
+  staff     Staff?
+
+  @@index([companyId])
+  @@map("users")
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  logo      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users User[]
+  farms Farm[]
+
+  @@map("companies")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique // Admin, Farm Manager, Supervisor, Operator, Viewer
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  userRoles   UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id       String @id @default(uuid())
+  resource String // e.g., "ponds", "cycles", "feeding"
+  action   String // e.g., "create", "read", "update", "delete"
+
+  roles RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String @map("user_id")
+  roleId String @map("role_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  action     String // CREATE, UPDATE, DELETE, LOGIN, etc.
+  resource   String // Table/entity name
+  resourceId String?  @map("resource_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// Module 2: Farm Structure
+// ============================================
+
+model Farm {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  name        String
+  location    String?
+  totalArea   Float?   @map("total_area") // hectares
+  waterSource String?  @map("water_source")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company Company           @relation(fields: [companyId], references: [id])
+  ponds   Pond[]
+  devices Device[]
+  staff   Staff[]
+  costs   OperationalCost[]
+
+  @@index([companyId])
+  @@map("farms")
+}
+
+enum PondStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  HARVESTING
+  PREPARING
+}
+
+enum WaterType {
+  FRESHWATER
+  SALTWATER
+  BRACKISH
+}
+
+model Pond {
+  id        String     @id @default(uuid())
+  farmId    String     @map("farm_id")
+  name      String
+  code      String     @unique // e.g., P-01, P-02
+  area      Float // hectares
+  depth     Float? // meters
+  waterType WaterType  @default(BRACKISH) @map("water_type")
+  capacity  Int? // max shrimp count
+  status    PondStatus @default(PREPARING)
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  farm             Farm              @relation(fields: [farmId], references: [id])
+  zones            PondZone[]
+  sensors          Sensor[]
+  cycles           Cycle[]
+  feedingLogs      FeedingLog[]
+  waterQualityLogs WaterQualityLog[]
+  tasks            Task[]
+
+  @@index([farmId])
+  @@map("ponds")
+}
+
+model PondZone {
+  id     String @id @default(uuid())
+  pondId String @map("pond_id")
+  name   String
+  area   Float? // hectares
+
+  pond Pond @relation(fields: [pondId], references: [id], onDelete: Cascade)
+
+  @@map("pond_zones")
+}
+
+enum SensorType {
+  TEMPERATURE
+  PH
+  DISSOLVED_OXYGEN
+  SALINITY
+  AMMONIA
+  TURBIDITY
+}
+
+model Sensor {
+  id           String     @id @default(uuid())
+  pondId       String     @map("pond_id")
+  type         SensorType
+  model        String?
+  serialNumber String?    @unique @map("serial_number")
+  isActive     Boolean    @default(true) @map("is_active")
+  installedAt  DateTime?  @map("installed_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  pond     Pond            @relation(fields: [pondId], references: [id])
+  readings SensorReading[]
+
+  @@map("sensors")
+}
+
+model Device {
+  id           String    @id @default(uuid())
+  farmId       String    @map("farm_id")
+  name         String
+  type         String // Aerator, Pump, Feeder, etc.
+  model        String?
+  serialNumber String?   @unique @map("serial_number")
+  status       String    @default("active") // active, maintenance, retired
+  installedAt  DateTime? @map("installed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  farm Farm @relation(fields: [farmId], references: [id])
+
+  @@map("devices")
+}
+
+// ============================================
+// Module 3: Production Cycles
+// ============================================
+
+enum CycleStatus {
+  PLANNING
+  STOCKING
+  GROWING
+  HARVESTING
+  COMPLETED
+  CANCELLED
+}
+
+model Cycle {
+  id              String      @id @default(uuid())
+  pondId          String      @map("pond_id")
+  name            String // e.g., "Cycle 2024-Q3"
+  species         String      @default("Litopenaeus vannamei")
+  status          CycleStatus @default(PLANNING)
+  startDate       DateTime?   @map("start_date")
+  expectedEndDate DateTime?   @map("expected_end_date")
+  actualEndDate   DateTime?   @map("actual_end_date")
+  initialStock    Int?        @map("initial_stock")
+  stockDensity    Float?      @map("stock_density") // per m²
+  targetWeight    Float?      @map("target_weight") // grams
+  notes           String?
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  pond             Pond              @relation(fields: [pondId], references: [id])
+  stages           CycleStage[]
+  stockingRecords  StockingRecord[]
+  harvestRecords   HarvestRecord[]
+  mortalityRecords MortalityRecord[]
+  feedingLogs      FeedingLog[]
+  productionCosts  ProductionCost[]
+  revenueRecords   RevenueRecord[]
+
+  @@index([pondId])
+  @@index([status])
+  @@map("cycles")
+}
+
+enum StageType {
+  NURSERY
+  GROW_OUT
+  PRE_HARVEST
+  HARVEST
+}
+
+model CycleStage {
+  id        String    @id @default(uuid())
+  cycleId   String    @map("cycle_id")
+  name      String
+  type      StageType
+  startDate DateTime  @map("start_date")
+  endDate   DateTime? @map("end_date")
+  notes     String?
+
+  cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@map("cycle_stages")
+}
+
+model StockingRecord {
+  id            String   @id @default(uuid())
+  cycleId       String   @map("cycle_id")
+  date          DateTime
+  quantity      Int
+  averageWeight Float    @map("average_weight") // grams
+  source        String? // supplier / hatchery
+  plDensity     Float?   @map("pl_density") // PL/m²
+  cost          Float?
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@map("stocking_records")
+}
+
+model HarvestRecord {
+  id            String   @id @default(uuid())
+  cycleId       String   @map("cycle_id")
+  date          DateTime
+  quantity      Int // count
+  totalWeight   Float    @map("total_weight") // kg or lbs
+  averageWeight Float    @map("average_weight") // grams
+  pricePerUnit  Float    @map("price_per_unit") // per lb or kg
+  totalRevenue  Float    @map("total_revenue")
+  survivalRate  Float?   @map("survival_rate") // percentage
+  harvestType   String   @default("full") // partial or full
+  buyer         String?
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@map("harvest_records")
+}
+
+model MortalityRecord {
+  id        String   @id @default(uuid())
+  cycleId   String   @map("cycle_id")
+  date      DateTime
+  count     Int
+  cause     String? // Disease, Water quality, Unknown, etc.
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@index([cycleId, date])
+  @@map("mortality_records")
+}
+
+// ============================================
+// Module 4: Feeding Management
+// ============================================
+
+model FeedType {
+  id         String   @id @default(uuid())
+  name       String // e.g., "Masterline EXT #5 BI"
+  brand      String?
+  proteinPct Float?   @map("protein_pct")
+  size       String? // pellet size
+  costPerKg  Float    @map("cost_per_kg")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  inventory   FeedInventory[]
+  feedingLogs FeedingLog[]
+  schedules   FeedingSchedule[]
+
+  @@map("feed_types")
+}
+
+model FeedInventory {
+  id         String    @id @default(uuid())
+  feedTypeId String    @map("feed_type_id")
+  quantity   Float // kg
+  lotNumber  String?   @map("lot_number")
+  expiryDate DateTime? @map("expiry_date")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  feedType FeedType @relation(fields: [feedTypeId], references: [id])
+
+  @@map("feed_inventory")
+}
+
+model FeedingLog {
+  id         String   @id @default(uuid())
+  pondId     String   @map("pond_id")
+  cycleId    String?  @map("cycle_id")
+  feedTypeId String   @map("feed_type_id")
+  date       DateTime
+  quantity   Float // kg
+  mealNumber Int?     @map("meal_number") // 1st, 2nd, 3rd feeding
+  notes      String?
+  recordedBy String?  @map("recorded_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  pond     Pond     @relation(fields: [pondId], references: [id])
+  cycle    Cycle?   @relation(fields: [cycleId], references: [id])
+  feedType FeedType @relation(fields: [feedTypeId], references: [id])
+
+  @@index([pondId, date])
+  @@index([cycleId])
+  @@map("feeding_logs")
+}
+
+model FeedingSchedule {
+  id         String   @id @default(uuid())
+  feedTypeId String   @map("feed_type_id")
+  dayOfCycle Int      @map("day_of_cycle") // which day in cycle
+  percentage Float // percentage of feed table
+  meals      Int      @default(4) // feedings per day
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  feedType FeedType @relation(fields: [feedTypeId], references: [id])
+
+  @@map("feeding_schedules")
+}
+
+// ============================================
+// Module 5: Water Quality Monitoring
+// ============================================
+
+model WaterQualityLog {
+  id              String   @id @default(uuid())
+  pondId          String   @map("pond_id")
+  date            DateTime
+  temperature     Float? // °C
+  ph              Float?
+  dissolvedOxygen Float?   @map("dissolved_oxygen") // mg/L
+  salinity        Float? // ppt
+  ammonia         Float? // mg/L
+  nitrite         Float? // mg/L
+  nitrate         Float? // mg/L
+  turbidity       Float? // NTU
+  alkalinity      Float? // mg/L CaCO3
+  recordedBy      String?  @map("recorded_by")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  pond Pond @relation(fields: [pondId], references: [id])
+
+  @@index([pondId, date])
+  @@map("water_quality_logs")
+}
+
+model SensorReading {
+  id        String   @id @default(uuid())
+  sensorId  String   @map("sensor_id")
+  value     Float
+  unit      String
+  timestamp DateTime @default(now())
+
+  sensor Sensor @relation(fields: [sensorId], references: [id])
+
+  @@index([sensorId, timestamp])
+  @@map("sensor_readings")
+}
+
+// ============================================
+// Module 6: Inventory Management
+// ============================================
+
+enum InventoryCategory {
+  FEED
+  CHEMICAL
+  EQUIPMENT
+  SPARE_PART
+  OTHER
+}
+
+model InventoryItem {
+  id           String            @id @default(uuid())
+  name         String
+  category     InventoryCategory
+  unit         String // kg, L, pieces
+  currentStock Float             @default(0) @map("current_stock")
+  minimumStock Float             @default(0) @map("minimum_stock")
+  costPerUnit  Float?            @map("cost_per_unit")
+  location     String?
+  isActive     Boolean           @default(true) @map("is_active")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  movements InventoryMovement[]
+
+  @@map("inventory_items")
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUSTMENT
+  TRANSFER
+}
+
+model InventoryMovement {
+  id        String       @id @default(uuid())
+  itemId    String       @map("item_id")
+  type      MovementType
+  quantity  Float
+  reason    String?
+  reference String? // PO number, etc.
+  movedBy   String?      @map("moved_by")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  item InventoryItem @relation(fields: [itemId], references: [id])
+
+  @@index([itemId, createdAt])
+  @@map("inventory_movements")
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  contact   String?
+  email     String?
+  phone     String?
+  address   String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+enum OrderStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id           String      @id @default(uuid())
+  supplierId   String      @map("supplier_id")
+  orderNumber  String      @unique @map("order_number")
+  status       OrderStatus @default(DRAFT)
+  totalAmount  Float?      @map("total_amount")
+  orderDate    DateTime    @map("order_date")
+  deliveryDate DateTime?   @map("delivery_date")
+  notes        String?
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@map("purchase_orders")
+}
+
+// ============================================
+// Module 7: Personnel Management
+// ============================================
+
+model Staff {
+  id        String   @id @default(uuid())
+  userId    String?  @unique @map("user_id") // optional link to User account
+  farmId    String   @map("farm_id")
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  position  String
+  phone     String?
+  hireDate  DateTime @map("hire_date")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user            User?            @relation(fields: [userId], references: [id])
+  farm            Farm             @relation(fields: [farmId], references: [id])
+  shifts          Shift[]
+  attendance      Attendance[]
+  taskAssignments TaskAssignment[]
+
+  @@index([farmId])
+  @@map("staff")
+}
+
+model Shift {
+  id        String   @id @default(uuid())
+  staffId   String   @map("staff_id")
+  date      DateTime
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
+  type      String   @default("regular") // regular, overtime, night
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  staff Staff @relation(fields: [staffId], references: [id])
+
+  @@index([staffId, date])
+  @@map("shifts")
+}
+
+model Attendance {
+  id        String    @id @default(uuid())
+  staffId   String    @map("staff_id")
+  date      DateTime
+  checkIn   DateTime? @map("check_in")
+  checkOut  DateTime? @map("check_out")
+  status    String    @default("present") // present, absent, late, excused
+  notes     String?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  staff Staff @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, date])
+  @@map("attendance")
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  pondId      String?      @map("pond_id")
+  title       String
+  description String?
+  status      TaskStatus   @default(PENDING)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?    @map("due_date")
+  completedAt DateTime?    @map("completed_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  pond        Pond?            @relation(fields: [pondId], references: [id])
+  assignments TaskAssignment[]
+
+  @@index([status])
+  @@index([pondId])
+  @@map("tasks")
+}
+
+model TaskAssignment {
+  id         String   @id @default(uuid())
+  taskId     String   @map("task_id")
+  staffId    String   @map("staff_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  staff Staff @relation(fields: [staffId], references: [id])
+
+  @@unique([taskId, staffId])
+  @@map("task_assignments")
+}
+
+// ============================================
+// Module 8: Financial Tracking
+// ============================================
+
+model ExpenseCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique // Labor, Feed, Chemicals, Energy, Equipment, etc.
+  createdAt DateTime @default(now()) @map("created_at")
+
+  operationalCosts OperationalCost[]
+  productionCosts  ProductionCost[]
+
+  @@map("expense_categories")
+}
+
+model OperationalCost {
+  id          String   @id @default(uuid())
+  farmId      String   @map("farm_id")
+  categoryId  String   @map("category_id")
+  description String
+  amount      Float
+  date        DateTime
+  receipt     String? // file URL
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  farm     Farm            @relation(fields: [farmId], references: [id])
+  category ExpenseCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([farmId, date])
+  @@map("operational_costs")
+}
+
+model ProductionCost {
+  id          String   @id @default(uuid())
+  cycleId     String   @map("cycle_id")
+  categoryId  String   @map("category_id")
+  description String
+  amount      Float
+  date        DateTime
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  cycle    Cycle           @relation(fields: [cycleId], references: [id])
+  category ExpenseCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([cycleId])
+  @@map("production_costs")
+}
+
+model RevenueRecord {
+  id          String   @id @default(uuid())
+  cycleId     String   @map("cycle_id")
+  description String
+  amount      Float
+  date        DateTime
+  source      String? // buyer name
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  cycle Cycle @relation(fields: [cycleId], references: [id])
+
+  @@index([cycleId])
+  @@map("revenue_records")
+}

@@ -1,0 +1,36 @@
+import * as dotenv from "dotenv";
+import * as path from "path";
+
+// Load .env from monorepo root
+dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
+dotenv.config(); // Also try local .env
+
+export const config = {
+  database: {
+    url:
+      process.env.DATABASE_URL ||
+      "postgresql://shrampi:shrampi_dev_2024@localhost:5432/shrampi?schema=public",
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET || "shrampi-dev-secret",
+    refreshSecret:
+      process.env.JWT_REFRESH_SECRET || "shrampi-refresh-dev-secret",
+    accessExpiresIn: "15m",
+    refreshExpiresIn: "7d",
+  },
+  api: {
+    port: parseInt(process.env.API_PORT || "3001", 10),
+    corsOrigins: (
+      process.env.CORS_ORIGINS || "http://localhost:3000,http://localhost:3002"
+    ).split(","),
+  },
+  web: {
+    port: parseInt(process.env.WEB_PORT || "3000", 10),
+  },
+  admin: {
+    port: parseInt(process.env.ADMIN_PORT || "3002", 10),
+  },
+  isDev: process.env.NODE_ENV !== "production",
+} as const;
+
+export type Config = typeof config;
