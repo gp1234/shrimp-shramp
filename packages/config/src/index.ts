@@ -29,7 +29,7 @@ export const config = {
     refreshExpiresIn: "7d",
   },
   api: {
-    port: parseInt(process.env.API_PORT || "3001", 10),
+    port: parseInt(process.env.PORT || process.env.API_PORT || "3001", 10),
     corsOrigins: (
       process.env.CORS_ORIGINS ||
       (isProd ? "*" : "http://localhost:3000,http://localhost:3002")
