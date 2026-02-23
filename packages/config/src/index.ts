@@ -1,15 +1,25 @@
 import * as dotenv from "dotenv";
 import * as path from "path";
 
-// Load .env from monorepo root
-dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
-dotenv.config(); // Also try local .env
+const isProd = process.env.NODE_ENV === "production";
+
+// Only load .env files in development (production uses real env vars)
+if (!isProd) {
+  dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
+  dotenv.config(); // Also try local .env
+}
+
+const DATABASE_URL =
+  process.env.DATABASE_URL ||
+  (isProd
+    ? (() => {
+        throw new Error("DATABASE_URL must be set in production");
+      })()
+    : "postgresql://shrampi:shrampi_dev_2024@localhost:5432/shrampi?schema=public");
 
 export const config = {
   database: {
-    url:
-      process.env.DATABASE_URL ||
-      "postgresql://shrampi:shrampi_dev_2024@localhost:5432/shrampi?schema=public",
+    url: DATABASE_URL,
   },
   jwt: {
     secret: process.env.JWT_SECRET || "shrampi-dev-secret",
@@ -21,7 +31,8 @@ export const config = {
   api: {
     port: parseInt(process.env.API_PORT || "3001", 10),
     corsOrigins: (
-      process.env.CORS_ORIGINS || "http://localhost:3000,http://localhost:3002"
+      process.env.CORS_ORIGINS ||
+      (isProd ? "*" : "http://localhost:3000,http://localhost:3002")
     ).split(","),
   },
   web: {
@@ -30,7 +41,7 @@ export const config = {
   admin: {
     port: parseInt(process.env.ADMIN_PORT || "3002", 10),
   },
-  isDev: process.env.NODE_ENV !== "production",
+  isDev: !isProd,
 } as const;
 
 export type Config = typeof config;
