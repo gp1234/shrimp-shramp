@@ -39,6 +39,7 @@ import {
   Tooltip as RTooltip,
 } from "recharts";
 import api from "../api";
+import { useFarm } from "../contexts/FarmContext";
 
 interface Farm {
   id: string;
@@ -90,6 +91,8 @@ export function FinancialPage() {
   const theme = useTheme();
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const { currentFarm } = useFarm();
+  const farmId = currentFarm?.id;
   const [costDialog, setCostDialog] = useState(false);
   const [revDialog, setRevDialog] = useState(false);
   const [cf, setCf] = useState(EMPTY_COST);
@@ -100,8 +103,12 @@ export function FinancialPage() {
   } | null>(null);
 
   const { data: costs, isLoading: costsLoading } = useQuery<OpCost[]>({
-    queryKey: ["fin-costs"],
-    queryFn: () => api.get("/financial/costs").then((r) => r.data.data),
+    queryKey: ["fin-costs", farmId],
+    queryFn: () =>
+      api
+        .get("/financial/costs", { params: { farmId } })
+        .then((r) => r.data.data),
+    enabled: !!farmId,
   });
   const { data: revenue, isLoading: revLoading } = useQuery<Revenue[]>({
     queryKey: ["fin-revenue"],
@@ -116,8 +123,10 @@ export function FinancialPage() {
     queryFn: () => api.get("/financial/categories").then((r) => r.data.data),
   });
   const { data: cycles } = useQuery<Cycle[]>({
-    queryKey: ["cycles-list"],
-    queryFn: () => api.get("/cycles").then((r) => r.data.data),
+    queryKey: ["cycles-list", farmId],
+    queryFn: () =>
+      api.get("/cycles", { params: { farmId } }).then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const createCost = useMutation({

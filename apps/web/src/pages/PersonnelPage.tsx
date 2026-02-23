@@ -33,6 +33,7 @@ import {
   Edit,
 } from "@mui/icons-material";
 import api from "../api";
+import { useFarm } from "../contexts/FarmContext";
 
 interface Farm {
   id: string;
@@ -85,6 +86,8 @@ export function PersonnelPage() {
   const theme = useTheme();
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const { currentFarm } = useFarm();
+  const farmId = currentFarm?.id;
   const [staffDialog, setStaffDialog] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [sf, setSf] = useState(EMPTY_STAFF);
@@ -96,8 +99,12 @@ export function PersonnelPage() {
   } | null>(null);
 
   const { data: staff, isLoading: staffLoading } = useQuery<Staff[]>({
-    queryKey: ["personnel-staff"],
-    queryFn: () => api.get("/personnel/staff").then((r) => r.data.data),
+    queryKey: ["personnel-staff", farmId],
+    queryFn: () =>
+      api
+        .get("/personnel/staff", { params: { farmId } })
+        .then((r) => r.data.data),
+    enabled: !!farmId,
   });
   const { data: tasks, isLoading: tasksLoading } = useQuery<Task[]>({
     queryKey: ["personnel-tasks"],
@@ -108,8 +115,10 @@ export function PersonnelPage() {
     queryFn: () => api.get("/farms").then((r) => r.data.data),
   });
   const { data: ponds } = useQuery<Pond[]>({
-    queryKey: ["ponds-list"],
-    queryFn: () => api.get("/ponds").then((r) => r.data.data),
+    queryKey: ["ponds-list", farmId],
+    queryFn: () =>
+      api.get("/ponds", { params: { farmId } }).then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const ok = (key: string) => () => {

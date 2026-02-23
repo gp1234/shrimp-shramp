@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
+import { useFarm } from "../contexts/FarmContext";
 import {
   Box,
   Grid2 as Grid,
@@ -60,6 +61,8 @@ export function PondsPage() {
   const theme = useTheme();
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const { currentFarm } = useFarm();
+  const farmId = currentFarm?.id;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPond, setEditingPond] = useState<Pond | null>(null);
@@ -71,8 +74,10 @@ export function PondsPage() {
   } | null>(null);
 
   const { data: ponds, isLoading } = useQuery<Pond[]>({
-    queryKey: ["ponds"],
-    queryFn: () => api.get("/ponds").then((r) => r.data.data),
+    queryKey: ["ponds", farmId],
+    queryFn: () =>
+      api.get("/ponds", { params: { farmId } }).then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const { data: farms } = useQuery<Farm[]>({
@@ -114,7 +119,7 @@ export function PondsPage() {
 
   const openCreate = () => {
     setEditingPond(null);
-    setForm({ ...EMPTY_POND, farmId: farms?.[0]?.id || "" });
+    setForm({ ...EMPTY_POND, farmId: currentFarm?.id || "" });
     setDialogOpen(true);
   };
 
@@ -125,7 +130,7 @@ export function PondsPage() {
       code: pond.code,
       area: String(pond.area),
       depth: String(pond.depth || ""),
-      farmId: pond.farmId,
+      farmId: currentFarm?.id || pond.farmId,
       waterType: pond.waterType || "BRACKISH",
       capacity: pond.capacity != null ? String(pond.capacity) : "",
       status: pond.status,
@@ -139,7 +144,7 @@ export function PondsPage() {
       code: form.code,
       area: parseFloat(form.area),
       depth: form.depth ? parseFloat(form.depth) : null,
-      farmId: form.farmId,
+      farmId: currentFarm?.id || form.farmId,
       waterType: form.waterType,
       capacity: form.capacity ? parseInt(form.capacity) : null,
       status: form.status,
@@ -387,19 +392,11 @@ export function PondsPage() {
             required
           />
           <TextField
-            select
             label={t("crud.farm")}
-            value={form.farmId}
-            onChange={(e) => setForm({ ...form, farmId: e.target.value })}
+            value={currentFarm?.name || ""}
             fullWidth
-            required
-          >
-            {farms?.map((f) => (
-              <MenuItem key={f.id} value={f.id}>
-                {f.name}
-              </MenuItem>
-            ))}
-          </TextField>
+            disabled
+          />
           <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
               label={`${t("ponds.area")} (ha)`}
@@ -467,7 +464,9 @@ export function PondsPage() {
           <Button
             variant="contained"
             onClick={handleSubmit}
-            disabled={!form.name || !form.code || !form.area || !form.farmId}
+            disabled={
+              !form.name || !form.code || !form.area || !currentFarm?.id
+            }
           >
             {editingPond ? t("crud.save") : t("crud.create")}
           </Button>

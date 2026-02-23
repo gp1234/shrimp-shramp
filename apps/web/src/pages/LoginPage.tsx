@@ -19,8 +19,9 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { t } = useTranslation();
-  const [email, setEmail] = useState("admin@shrampi.com");
-  const [password, setPassword] = useState("Admin123!");
+  const isDev = import.meta.env.DEV;
+  const [email, setEmail] = useState(isDev ? "admin@shrampi.com" : "");
+  const [password, setPassword] = useState(isDev ? "Admin123!" : "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -123,17 +124,19 @@ export function LoginPage() {
             </Button>
           </Box>
 
-          <Typography
-            variant="caption"
-            sx={{
-              display: "block",
-              textAlign: "center",
-              mt: 3,
-              color: "text.secondary",
-            }}
-          >
-            {t("auth.demoCredentials")}
-          </Typography>
+          {isDev && (
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                textAlign: "center",
+                mt: 3,
+                color: "text.secondary",
+              }}
+            >
+              {t("auth.demoCredentials")}
+            </Typography>
+          )}
         </CardContent>
       </Card>
     </Box>

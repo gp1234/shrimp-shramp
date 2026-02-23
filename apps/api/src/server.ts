@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "path";
 import { config } from "@shrampi/config";
 import { authRouter } from "./routes/auth.routes";
 import { farmRouter } from "./routes/farm.routes";
@@ -18,7 +19,7 @@ import { errorHandler } from "./middleware/error.middleware";
 const app = express();
 
 // ── Middleware ──
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: config.api.corsOrigins, credentials: true }));
 app.use(express.json());
 app.use(morgan(config.isDev ? "dev" : "combined"));
@@ -47,9 +48,21 @@ app.use("/api/v1/kpi", kpiRouter);
 // ── Error handler ──
 app.use(errorHandler);
 
+// ── Serve React frontend in production ──
+if (!config.isDev) {
+  const webDist = path.resolve(__dirname, "../../web/dist");
+  app.use(express.static(webDist));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(webDist, "index.html"));
+  });
+}
+
 // ── Start server ──
 app.listen(config.api.port, () => {
-  console.log(`🦐 Shrampi API running on http://localhost:${config.api.port}`);
+  console.log(`🦐 Shrampi running on http://localhost:${config.api.port}`);
+  if (!config.isDev) {
+    console.log(`   Serving frontend + API from single port`);
+  }
   console.log(`   Health: http://localhost:${config.api.port}/api/v1/health`);
 });
 

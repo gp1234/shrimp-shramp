@@ -32,6 +32,7 @@ import {
   Cell,
 } from "recharts";
 import api from "../api";
+import { useFarm } from "../contexts/FarmContext";
 
 interface DashboardKPI {
   totalPonds: number;
@@ -169,17 +170,27 @@ function StatusBadge({ status }: { status: string }) {
 export function DashboardPage() {
   const theme = useTheme();
   const { t } = useTranslation();
+  const { currentFarm } = useFarm();
+  const farmId = currentFarm?.id;
 
   const { data: kpi, isLoading: kpiLoading } = useQuery<DashboardKPI>({
-    queryKey: ["kpi-dashboard"],
-    queryFn: () => api.get("/kpi/dashboard").then((r) => r.data.data),
+    queryKey: ["kpi-dashboard", farmId],
+    queryFn: () =>
+      api
+        .get("/kpi/dashboard", { params: { farmId } })
+        .then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const { data: pondsOverview, isLoading: pondsLoading } = useQuery<
     PondOverview[]
   >({
-    queryKey: ["ponds-overview"],
-    queryFn: () => api.get("/kpi/ponds-overview").then((r) => r.data.data),
+    queryKey: ["ponds-overview", farmId],
+    queryFn: () =>
+      api
+        .get("/kpi/ponds-overview", { params: { farmId } })
+        .then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const formatCurrency = (val: number) =>

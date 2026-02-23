@@ -11,44 +11,52 @@ kpiRouter.use(authenticate);
 // GET /api/v1/kpi/dashboard
 kpiRouter.get(
   "/dashboard",
-  async (_req: AuthenticatedRequest, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
+      const { farmId } = req.query;
+      const pondWhere: any = farmId ? { farmId } : {};
+      const cycleWhere: any = farmId ? { pond: { farmId } } : {};
+
       // Pond counts
       const [totalPonds, activePonds] = await Promise.all([
-        prisma.pond.count(),
-        prisma.pond.count({ where: { status: "ACTIVE" } }),
+        prisma.pond.count({ where: pondWhere }),
+        prisma.pond.count({ where: { ...pondWhere, status: "ACTIVE" } }),
       ]);
 
       // Cycle counts
       const [activeCycles, completedCycles] = await Promise.all([
         prisma.cycle.count({
-          where: { status: { in: ["GROWING", "STOCKING"] } },
+          where: { ...cycleWhere, status: { in: ["GROWING", "STOCKING"] } },
         }),
-        prisma.cycle.count({ where: { status: "COMPLETED" } }),
+        prisma.cycle.count({ where: { ...cycleWhere, status: "COMPLETED" } }),
       ]);
 
       // Harvest summaries for completed cycles
       const harvests = await prisma.harvestRecord.aggregate({
+        where: farmId ? { cycle: { pond: { farmId: farmId as string } } } : {},
         _sum: { totalWeight: true, totalRevenue: true },
         _avg: { survivalRate: true, averageWeight: true },
       });
 
       // Total costs
       const productionCostSum = await prisma.productionCost.aggregate({
+        where: farmId ? { cycle: { pond: { farmId: farmId as string } } } : {},
         _sum: { amount: true },
       });
       const operationalCostSum = await prisma.operationalCost.aggregate({
+        where: farmId ? { farmId: farmId as string } : {},
         _sum: { amount: true },
       });
 
       // Total revenue
       const revenueSum = await prisma.revenueRecord.aggregate({
+        where: farmId ? { cycle: { pond: { farmId: farmId as string } } } : {},
         _sum: { amount: true },
       });
 
       // FCR calculation for completed cycles
       const completedCycleIds = await prisma.cycle.findMany({
-        where: { status: "COMPLETED" },
+        where: { ...cycleWhere, status: "COMPLETED" },
         select: { id: true },
       });
       const feedTotal = await prisma.feedingLog.aggregate({
@@ -196,9 +204,11 @@ kpiRouter.get(
 // GET /api/v1/kpi/ponds-overview
 kpiRouter.get(
   "/ponds-overview",
-  async (_req: AuthenticatedRequest, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
+      const { farmId } = req.query;
       const ponds = await prisma.pond.findMany({
+        where: farmId ? { farmId: farmId as string } : {},
         include: {
           cycles: {
             where: { status: { in: ["GROWING", "STOCKING"] } },

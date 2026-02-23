@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import { Add, Visibility, Loop, Edit, Delete } from "@mui/icons-material";
 import api from "../api";
+import { useFarm } from "../contexts/FarmContext";
 
 interface Pond {
   id: string;
@@ -68,6 +69,8 @@ export function CyclesPage() {
   const theme = useTheme();
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const { currentFarm } = useFarm();
+  const farmId = currentFarm?.id;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Cycle | null>(null);
@@ -79,13 +82,17 @@ export function CyclesPage() {
   } | null>(null);
 
   const { data: cycles, isLoading } = useQuery<Cycle[]>({
-    queryKey: ["cycles"],
-    queryFn: () => api.get("/cycles").then((r) => r.data.data),
+    queryKey: ["cycles", farmId],
+    queryFn: () =>
+      api.get("/cycles", { params: { farmId } }).then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const { data: ponds } = useQuery<Pond[]>({
-    queryKey: ["ponds-list"],
-    queryFn: () => api.get("/ponds").then((r) => r.data.data),
+    queryKey: ["ponds-list", farmId],
+    queryFn: () =>
+      api.get("/ponds", { params: { farmId } }).then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const createMut = useMutation({
@@ -234,9 +241,7 @@ export function CyclesPage() {
                         <Loop />
                       </Box>
                       <Box>
-                        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                          {cycle.name}
-                        </Typography>
+                        <Typography variant="h5">{cycle.name}</Typography>
                         <Typography
                           variant="caption"
                           sx={{ color: "text.secondary" }}
@@ -292,7 +297,7 @@ export function CyclesPage() {
                       >
                         {t("cycles.days")}
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                      <Typography variant="body1">
                         {getDaysInCycle(cycle.startDate)}
                       </Typography>
                     </Box>
@@ -303,7 +308,7 @@ export function CyclesPage() {
                       >
                         {t("cycles.density")}
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                      <Typography variant="body1">
                         {cycle.stockDensity} /m²
                       </Typography>
                     </Box>
@@ -314,7 +319,7 @@ export function CyclesPage() {
                       >
                         {t("cycles.targetWeight")}
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                      <Typography variant="body1">
                         {cycle.targetWeight}g
                       </Typography>
                     </Box>
@@ -325,7 +330,7 @@ export function CyclesPage() {
                       >
                         {t("cycles.feedings")}
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                      <Typography variant="body1">
                         {cycle._count.feedingLogs}
                       </Typography>
                     </Box>
@@ -336,7 +341,7 @@ export function CyclesPage() {
                       >
                         {t("cycles.harvests")}
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                      <Typography variant="body1">
                         {cycle._count.harvestRecords}
                       </Typography>
                     </Box>
@@ -347,7 +352,7 @@ export function CyclesPage() {
                       >
                         {t("cycles.startDate")}
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                      <Typography variant="body1">
                         {new Date(cycle.startDate).toLocaleDateString()}
                       </Typography>
                     </Box>

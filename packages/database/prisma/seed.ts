@@ -63,17 +63,33 @@ async function main() {
   console.log("✅ Assigned all permissions to Admin role");
 
   // ──────────────────────────────────────────
-  // 3. Users
+  // 2b. Company
   // ──────────────────────────────────────────
-  const passwordHash = await bcrypt.hash("Admin123!", 10);
-
-  const adminUser = await prisma.user.upsert({
-    where: { email: "admin@shrampi.com" },
+  const company = await prisma.company.upsert({
+    where: { id: "00000000-0000-0000-0000-000000000099" },
     update: {},
     create: {
-      email: "admin@shrampi.com",
+      id: "00000000-0000-0000-0000-000000000099",
+      name: "Shrampi Corp",
+    },
+  });
+  console.log(`✅ Created company: ${company.name}`);
+
+  // ──────────────────────────────────────────
+  // 3. Users
+  // ──────────────────────────────────────────
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@shrampi.com";
+  const adminPassword = process.env.ADMIN_PASSWORD || "Admin123!";
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+
+  const adminUser = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: { passwordHash },
+    create: {
+      email: adminEmail,
       passwordHash,
       name: "System Admin",
+      companyId: company.id,
     },
   });
   await prisma.userRole.upsert({
@@ -90,6 +106,7 @@ async function main() {
       email: "manager@shrampi.com",
       passwordHash: await bcrypt.hash("Manager123!", 10),
       name: "Carlos Rodriguez",
+      companyId: company.id,
     },
   });
   await prisma.userRole.upsert({
@@ -109,6 +126,7 @@ async function main() {
     update: {},
     create: {
       id: "00000000-0000-0000-0000-000000000001",
+      companyId: company.id,
       name: "Shrampi Ocean Farm",
       location: "Guayaquil, Ecuador",
       totalArea: 25.5,
@@ -121,6 +139,7 @@ async function main() {
     update: {},
     create: {
       id: "00000000-0000-0000-0000-000000000002",
+      companyId: company.id,
       name: "Costa Verde Farm",
       location: "Machala, Ecuador",
       totalArea: 18.3,
@@ -128,29 +147,6 @@ async function main() {
     },
   });
   console.log(`✅ Created 2 farms: ${farm1.name}, ${farm2.name}`);
-
-  // ──────────────────────────────────────────
-  // 4b. UserFarm Relationships
-  // ──────────────────────────────────────────
-  // Admin has access to both farms as Owner
-  await prisma.userFarm.upsert({
-    where: { userId_farmId: { userId: adminUser.id, farmId: farm1.id } },
-    update: {},
-    create: { userId: adminUser.id, farmId: farm1.id, role: "Owner" },
-  });
-  await prisma.userFarm.upsert({
-    where: { userId_farmId: { userId: adminUser.id, farmId: farm2.id } },
-    update: {},
-    create: { userId: adminUser.id, farmId: farm2.id, role: "Owner" },
-  });
-
-  // Manager has access to farm1 only as Manager
-  await prisma.userFarm.upsert({
-    where: { userId_farmId: { userId: managerUser.id, farmId: farm1.id } },
-    update: {},
-    create: { userId: managerUser.id, farmId: farm1.id, role: "Manager" },
-  });
-  console.log("✅ Created UserFarm relationships");
 
   // Use farm1 for the rest of the seed data
   const farm = farm1;

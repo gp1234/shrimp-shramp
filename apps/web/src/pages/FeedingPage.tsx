@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import { Add, Restaurant, Schedule, Edit, Delete } from "@mui/icons-material";
 import api from "../api";
+import { useFarm } from "../contexts/FarmContext";
 
 interface FeedType {
   id: string;
@@ -63,6 +64,8 @@ export function FeedingPage() {
   const theme = useTheme();
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const { currentFarm } = useFarm();
+  const farmId = currentFarm?.id;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<FeedingLog | null>(null);
@@ -74,8 +77,10 @@ export function FeedingPage() {
   } | null>(null);
 
   const { data: logs, isLoading } = useQuery<FeedingLog[]>({
-    queryKey: ["feeding-logs"],
-    queryFn: () => api.get("/feeding/logs").then((r) => r.data.data),
+    queryKey: ["feeding-logs", farmId],
+    queryFn: () =>
+      api.get("/feeding/logs", { params: { farmId } }).then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const { data: feedTypes } = useQuery<FeedType[]>({
@@ -84,8 +89,10 @@ export function FeedingPage() {
   });
 
   const { data: ponds } = useQuery<Pond[]>({
-    queryKey: ["ponds-list"],
-    queryFn: () => api.get("/ponds").then((r) => r.data.data),
+    queryKey: ["ponds-list", farmId],
+    queryFn: () =>
+      api.get("/ponds", { params: { farmId } }).then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const createMut = useMutation({
@@ -189,7 +196,7 @@ export function FeedingPage() {
                         <Restaurant />
                       </Box>
                       <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        <Typography variant="h6">
                           {log.feedType.name}
                         </Typography>
                         <Typography
@@ -236,9 +243,7 @@ export function FeedingPage() {
                       >
                         {t("feeding.quantity")}
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                        {log.quantity} kg
-                      </Typography>
+                      <Typography variant="body1">{log.quantity} kg</Typography>
                     </Box>
                     <Box>
                       <Typography
@@ -247,9 +252,7 @@ export function FeedingPage() {
                       >
                         {t("feeding.pond")}
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                        {log.pond.name}
-                      </Typography>
+                      <Typography variant="body1">{log.pond.name}</Typography>
                     </Box>
                     <Box
                       sx={{

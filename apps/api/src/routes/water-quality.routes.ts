@@ -14,9 +14,10 @@ waterQualityRouter.get(
   "/",
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { pondId, startDate, endDate } = req.query;
+      const { pondId, startDate, endDate, farmId } = req.query;
       const where: any = {};
       if (pondId) where.pondId = pondId;
+      if (farmId) where.pond = { farmId };
       if (startDate || endDate) {
         where.date = {};
         if (startDate) where.date.gte = new Date(startDate as string);
@@ -92,12 +93,10 @@ waterQualityRouter.get(
       res.json({ success: true, data: summary });
     } catch (error) {
       console.error(error);
-      res
-        .status(500)
-        .json({
-          success: false,
-          error: "Failed to fetch water quality summary",
-        });
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch water quality summary",
+      });
     }
   },
 );

@@ -6,7 +6,7 @@
     "module": "ESNext",
     "jsx": "react-jsx",
     "outDir": "./dist",
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true

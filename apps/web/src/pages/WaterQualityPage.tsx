@@ -34,6 +34,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import api from "../api";
+import { useFarm } from "../contexts/FarmContext";
 
 interface Pond {
   id: string;
@@ -68,6 +69,8 @@ export function WaterQualityPage() {
   const theme = useTheme();
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const { currentFarm } = useFarm();
+  const farmId = currentFarm?.id;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -78,13 +81,19 @@ export function WaterQualityPage() {
   } | null>(null);
 
   const { data: logs, isLoading } = useQuery<WQLog[]>({
-    queryKey: ["water-quality"],
-    queryFn: () => api.get("/water-quality/logs").then((r) => r.data.data),
+    queryKey: ["water-quality", farmId],
+    queryFn: () =>
+      api
+        .get("/water-quality/logs", { params: { farmId } })
+        .then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const { data: ponds } = useQuery<Pond[]>({
-    queryKey: ["ponds-list"],
-    queryFn: () => api.get("/ponds").then((r) => r.data.data),
+    queryKey: ["ponds-list", farmId],
+    queryFn: () =>
+      api.get("/ponds", { params: { farmId } }).then((r) => r.data.data),
+    enabled: !!farmId,
   });
 
   const createMut = useMutation({

@@ -25,7 +25,9 @@ import {
   ToggleButton,
   Select,
   FormControl,
+  SelectChangeEvent,
 } from "@mui/material";
+import { UnfoldMore as UnfoldMoreIcon } from "@mui/icons-material";
 import {
   Dashboard as DashboardIcon,
   Pool as PondIcon,
@@ -60,13 +62,9 @@ export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { currentFarm, availableFarms, setCurrentFarm } = useFarm();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const handleLanguageChange = (_: any, newLang: string | null) => {
-    if (newLang) i18n.changeLanguage(newLang);
-  };
 
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -80,7 +78,6 @@ export function Layout({ children }: { children: ReactNode }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
             fontSize: "1.4rem",
           }}
         >
@@ -89,14 +86,14 @@ export function Layout({ children }: { children: ReactNode }) {
         <Box>
           <Typography
             variant="h6"
-            sx={{ fontWeight: 700, color: "text.primary", lineHeight: 1.2 }}
+            sx={{ fontWeight: 700, color: "#e3e8ef", lineHeight: 1.2 }}
           >
             {t("app.name")}
           </Typography>
           <Typography
             variant="caption"
             sx={{
-              color: "text.secondary",
+              color: "#94a3b8",
               fontSize: "0.65rem",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
@@ -106,6 +103,75 @@ export function Layout({ children }: { children: ReactNode }) {
           </Typography>
         </Box>
       </Box>
+
+      {/* Farm Selector */}
+      {availableFarms.length > 0 && (
+        <Box sx={{ px: 1.5, py: 1 }}>
+          <FormControl fullWidth size="small">
+            <Select
+              value={currentFarm?.id || ""}
+              onChange={(e: SelectChangeEvent) => {
+                const farm = availableFarms.find(
+                  (f) => f.id === e.target.value,
+                );
+                if (farm) setCurrentFarm(farm);
+              }}
+              IconComponent={UnfoldMoreIcon}
+              startAdornment={
+                <FarmIcon
+                  sx={{ mr: 1, fontSize: "1.1rem", color: "primary.main" }}
+                />
+              }
+              sx={{
+                borderRadius: 2,
+                bgcolor: alpha(theme.palette.primary.main, 0.06),
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: alpha(theme.palette.primary.main, 0.12),
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: alpha(theme.palette.primary.main, 0.3),
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "primary.main",
+                },
+                "& .MuiSelect-select": {
+                  py: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  color: "#e3e8ef",
+                },
+                "& .MuiSelect-icon": {
+                  color: "#94a3b8",
+                  fontSize: "1.2rem",
+                },
+              }}
+            >
+              {availableFarms.map((farm) => (
+                <MenuItem key={farm.id} value={farm.id}>
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, fontSize: "0.8rem" }}
+                    >
+                      {farm.name}
+                    </Typography>
+                    {farm.location && (
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "text.secondary", fontSize: "0.65rem" }}
+                      >
+                        {farm.location}
+                      </Typography>
+                    )}
+                  </Box>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+      )}
 
       <Divider sx={{ opacity: 0.06 }} />
 
@@ -127,7 +193,7 @@ export function Layout({ children }: { children: ReactNode }) {
               sx={{
                 mb: 0.5,
                 "& .MuiListItemIcon-root": {
-                  color: isActive ? "primary.main" : "text.secondary",
+                  color: isActive ? theme.palette.primary.main : "#94a3b8",
                   minWidth: 40,
                 },
               }}
@@ -138,7 +204,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 primaryTypographyProps={{
                   fontSize: "0.875rem",
                   fontWeight: isActive ? 600 : 400,
-                  color: isActive ? "text.primary" : "text.secondary",
+                  color: isActive ? "#e3e8ef" : "#94a3b8",
                 }}
               />
               {isActive && (
@@ -158,34 +224,6 @@ export function Layout({ children }: { children: ReactNode }) {
 
       <Divider sx={{ opacity: 0.06 }} />
 
-      {/* Language toggle */}
-      <Box sx={{ px: 2, py: 1.5, display: "flex", justifyContent: "center" }}>
-        <ToggleButtonGroup
-          value={i18n.language}
-          exclusive
-          onChange={handleLanguageChange}
-          size="small"
-          sx={{
-            "& .MuiToggleButton-root": {
-              px: 2,
-              py: 0.3,
-              fontSize: "0.7rem",
-              fontWeight: 600,
-              border: `1px solid ${alpha("#94a3b8", 0.15)}`,
-              color: "text.secondary",
-              "&.Mui-selected": {
-                bgcolor: alpha(theme.palette.primary.main, 0.15),
-                color: "primary.main",
-                borderColor: alpha(theme.palette.primary.main, 0.3),
-              },
-            },
-          }}
-        >
-          <ToggleButton value="es">ES</ToggleButton>
-          <ToggleButton value="en">EN</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
-
       <Divider sx={{ opacity: 0.06 }} />
 
       {/* User */}
@@ -204,14 +242,14 @@ export function Layout({ children }: { children: ReactNode }) {
         <Box sx={{ flex: 1, overflow: "hidden" }}>
           <Typography
             variant="body2"
-            sx={{ fontWeight: 600, color: "text.primary", fontSize: "0.8rem" }}
+            sx={{ fontWeight: 600, color: "#e3e8ef", fontSize: "0.8rem" }}
             noWrap
           >
             {user?.name || "User"}
           </Typography>
           <Typography
             variant="caption"
-            sx={{ color: "text.secondary", fontSize: "0.65rem" }}
+            sx={{ color: "#94a3b8", fontSize: "0.65rem" }}
             noWrap
           >
             {user?.roles?.join(", ") || "Viewer"}
@@ -220,7 +258,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <Tooltip title={t("nav.settings")}>
           <IconButton
             size="small"
-            sx={{ color: "text.secondary" }}
+            sx={{ color: "#94a3b8" }}
             onClick={() => {
               navigate("/settings");
               setMobileOpen(false);
@@ -270,13 +308,7 @@ export function Layout({ children }: { children: ReactNode }) {
         }}
       >
         {/* Top bar */}
-        <AppBar
-          position="sticky"
-          sx={{
-            ml: { md: `${DRAWER_WIDTH}px` },
-            width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          }}
-        >
+        <AppBar position="sticky">
           <Toolbar sx={{ gap: 1 }}>
             <IconButton
               edge="start"
@@ -285,51 +317,6 @@ export function Layout({ children }: { children: ReactNode }) {
             >
               <MenuIcon />
             </IconButton>
-
-            {/* Farm Selector */}
-            {currentFarm && availableFarms.length > 1 && (
-              <FormControl size="small" sx={{ minWidth: 200 }}>
-                <Select
-                  value={currentFarm.id}
-                  onChange={(e) => {
-                    const farm = availableFarms.find(
-                      (f) => f.id === e.target.value,
-                    );
-                    if (farm) setCurrentFarm(farm);
-                  }}
-                  startAdornment={
-                    <FarmIcon
-                      sx={{ mr: 1, fontSize: "1.1rem", color: "primary.main" }}
-                    />
-                  }
-                  sx={{
-                    "& .MuiSelect-select": {
-                      py: 0.75,
-                      display: "flex",
-                      alignItems: "center",
-                    },
-                  }}
-                >
-                  {availableFarms.map((farm) => (
-                    <MenuItem key={farm.id} value={farm.id}>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {farm.name}
-                        </Typography>
-                        {farm.location && (
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "text.secondary" }}
-                          >
-                            {farm.location}
-                          </Typography>
-                        )}
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
 
             <Box sx={{ flex: 1 }} />
             <Tooltip title={t("auth.account")}>
@@ -371,7 +358,6 @@ export function Layout({ children }: { children: ReactNode }) {
           sx={{
             flex: 1,
             p: { xs: 2, sm: 3 },
-            background: `radial-gradient(ellipse at top left, ${alpha(theme.palette.primary.dark, 0.08)}, transparent 60%)`,
           }}
         >
           {children}

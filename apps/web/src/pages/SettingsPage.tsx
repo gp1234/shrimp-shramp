@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
+import { useThemeMode } from "../contexts/ThemeContext";
 import {
   Box,
   Card,
@@ -18,15 +19,23 @@ import {
   Language,
   Person,
   Security,
+  LightMode,
+  DarkMode,
+  Palette,
 } from "@mui/icons-material";
 
 export function SettingsPage() {
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const { mode, toggleTheme } = useThemeMode();
 
   const handleLanguageChange = (_: any, newLang: string | null) => {
     if (newLang) i18n.changeLanguage(newLang);
+  };
+
+  const handleThemeChange = (_: any, newMode: string | null) => {
+    if (newMode && newMode !== mode) toggleTheme();
   };
 
   return (
@@ -50,7 +59,7 @@ export function SettingsPage() {
               sx={{
                 width: 72,
                 height: 72,
-                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                bgcolor: "primary.main",
                 fontSize: "1.5rem",
                 fontWeight: 700,
               }}
@@ -114,6 +123,47 @@ export function SettingsPage() {
           >
             <ToggleButton value="es">🇪🇸 Español</ToggleButton>
             <ToggleButton value="en">🇺🇸 English</ToggleButton>
+          </ToggleButtonGroup>
+        </CardContent>
+      </Card>
+
+      {/* Appearance */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+            <Palette sx={{ color: "primary.main" }} />
+            <Typography variant="h5">{t("settings.appearance")}</Typography>
+          </Box>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+            {t("settings.appearanceDesc")}
+          </Typography>
+          <ToggleButtonGroup
+            value={mode}
+            exclusive
+            onChange={handleThemeChange}
+            sx={{
+              "& .MuiToggleButton-root": {
+                px: 3,
+                py: 1,
+                fontWeight: 600,
+                gap: 1,
+                border: `1px solid ${alpha("#94a3b8", 0.15)}`,
+                "&.Mui-selected": {
+                  bgcolor: alpha(theme.palette.primary.main, 0.15),
+                  color: "primary.main",
+                  borderColor: alpha(theme.palette.primary.main, 0.3),
+                },
+              },
+            }}
+          >
+            <ToggleButton value="light">
+              <LightMode fontSize="small" />
+              {t("settings.lightMode")}
+            </ToggleButton>
+            <ToggleButton value="dark">
+              <DarkMode fontSize="small" />
+              {t("settings.darkMode")}
+            </ToggleButton>
           </ToggleButtonGroup>
         </CardContent>
       </Card>

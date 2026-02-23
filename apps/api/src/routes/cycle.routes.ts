@@ -12,10 +12,11 @@ cycleRouter.use(authenticate);
 // GET /api/v1/cycles
 cycleRouter.get("/", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { pondId, status } = req.query;
+    const { pondId, status, farmId } = req.query;
     const where: any = {};
     if (pondId) where.pondId = pondId;
     if (status) where.status = status;
+    if (farmId) where.pond = { farmId };
 
     const cycles = await prisma.cycle.findMany({
       where,

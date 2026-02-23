@@ -67,10 +67,11 @@ feedingRouter.put(
 // GET /api/v1/feeding/logs
 feedingRouter.get("/logs", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { pondId, cycleId, startDate, endDate } = req.query;
+    const { pondId, cycleId, startDate, endDate, farmId } = req.query;
     const where: any = {};
     if (pondId) where.pondId = pondId;
     if (cycleId) where.cycleId = cycleId;
+    if (farmId) where.pond = { farmId };
     if (startDate || endDate) {
       where.date = {};
       if (startDate) where.date.gte = new Date(startDate as string);
