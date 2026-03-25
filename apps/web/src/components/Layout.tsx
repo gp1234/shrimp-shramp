@@ -37,6 +37,9 @@ import {
   Inventory as InventoryIcon,
   People as PeopleIcon,
   AttachMoney as FinancialIcon,
+  Scale as PreweightIcon,
+  BubbleChart as PopulationIcon,
+  Opacity as WaterControlIcon,
   Menu as MenuIcon,
   Logout as LogoutIcon,
   Settings as SettingsIcon,
@@ -54,6 +57,12 @@ const navItems = [
   { labelKey: "nav.inventory", icon: <InventoryIcon />, path: "/inventory" },
   { labelKey: "nav.personnel", icon: <PeopleIcon />, path: "/personnel" },
   { labelKey: "nav.financial", icon: <FinancialIcon />, path: "/financial" },
+];
+
+const samplingNavItems = [
+  { labelKey: "nav.preweight", icon: <PreweightIcon />, path: "/sampling/preweight" },
+  { labelKey: "nav.populationSampling", icon: <PopulationIcon />, path: "/sampling/population" },
+  { labelKey: "nav.waterControl", icon: <WaterControlIcon />, path: "/water-control" },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -182,6 +191,64 @@ export function Layout({ children }: { children: ReactNode }) {
             item.path === "/"
               ? location.pathname === "/"
               : location.pathname.startsWith(item.path);
+          return (
+            <ListItemButton
+              key={item.path}
+              selected={isActive}
+              onClick={() => {
+                navigate(item.path);
+                setMobileOpen(false);
+              }}
+              sx={{
+                mb: 0.5,
+                "& .MuiListItemIcon-root": {
+                  color: isActive ? theme.palette.primary.main : "#94a3b8",
+                  minWidth: 40,
+                },
+              }}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText
+                primary={t(item.labelKey)}
+                primaryTypographyProps={{
+                  fontSize: "0.875rem",
+                  fontWeight: isActive ? 600 : 400,
+                  color: isActive ? "#e3e8ef" : "#94a3b8",
+                }}
+              />
+              {isActive && (
+                <Box
+                  sx={{
+                    width: 4,
+                    height: 24,
+                    borderRadius: 2,
+                    background: `linear-gradient(180deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                  }}
+                />
+              )}
+            </ListItemButton>
+          );
+        })}
+
+        {/* Sampling section */}
+        <Typography
+          variant="caption"
+          sx={{
+            px: 1.5,
+            pt: 2,
+            pb: 0.5,
+            display: "block",
+            color: "#64748b",
+            fontSize: "0.65rem",
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          {t("nav.samplingSection")}
+        </Typography>
+        {samplingNavItems.map((item) => {
+          const isActive = location.pathname.startsWith(item.path);
           return (
             <ListItemButton
               key={item.path}

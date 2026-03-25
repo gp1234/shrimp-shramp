@@ -31,6 +31,10 @@ model User {
   auditLogs AuditLog[]
   staff     Staff?
 
+  weeklyPreweights    WeeklyPreweight[]    @relation("weeklyPreweightCreator")
+  populationSamplings PopulationSampling[] @relation("populationSamplingCreator")
+  dailyWaterControls  DailyWaterControl[]  @relation("dailyWaterControlCreator")
+
   @@index([companyId])
   @@map("users")
 }
@@ -133,6 +137,10 @@ model Farm {
   staff   Staff[]
   costs   OperationalCost[]
 
+  weeklyPreweights    WeeklyPreweight[]
+  populationSamplings PopulationSampling[]
+  dailyWaterControls  DailyWaterControl[]
+
   @@index([companyId])
   @@map("farms")
 }
@@ -173,6 +181,10 @@ model Pond {
   feedingLogs      FeedingLog[]
   waterQualityLogs WaterQualityLog[]
   tasks            Task[]
+
+  preweightPondEntries  PreweightPondEntry[]
+  populationSamplings   PopulationSampling[]
+  dailyWaterPondEntries DailyWaterPondEntry[]
 
   @@index([farmId])
   @@map("ponds")
@@ -722,4 +734,148 @@ model RevenueRecord {
 
   @@index([cycleId])
   @@map("revenue_records")
+}
+
+// ============================================
+// Module 9: Sampling & Field Forms
+// ============================================
+
+// --- Form 1: Weekly Pre-weight (Prepeso Semanal) ---
+
+model WeeklyPreweight {
+  id           String   @id @default(uuid())
+  farmId       String   @map("farm_id")
+  samplingDate DateTime @map("sampling_date")
+  notes        String?
+  createdById  String   @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  farm      Farm                @relation(fields: [farmId], references: [id])
+  createdBy User                @relation("weeklyPreweightCreator", fields: [createdById], references: [id])
+  entries   PreweightPondEntry[]
+
+  @@index([farmId])
+  @@index([samplingDate])
+  @@map("weekly_preweights")
+}
+
+model PreweightPondEntry {
+  id                String   @id @default(uuid())
+  weeklyPreweightId String   @map("weekly_preweight_id")
+  pondId            String   @map("pond_id")
+  growthRate        Float    @map("growth_rate") // grams/week
+  mortality         Int      @default(0)
+  disease           Int      @default(0)
+  molt              Int      @default(0)
+  cultureDays       Int      @map("culture_days")
+  totalNumber       Int      @map("total_number")
+  totalWeight       Float    @map("total_weight")
+  averageWeight     Float    @map("average_weight")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  weeklyPreweight WeeklyPreweight  @relation(fields: [weeklyPreweightId], references: [id], onDelete: Cascade)
+  pond            Pond             @relation(fields: [pondId], references: [id])
+  samples         PreweightSample[]
+
+  @@index([weeklyPreweightId])
+  @@index([pondId])
+  @@map("preweight_pond_entries")
+}
+
+model PreweightSample {
+  id                   String   @id @default(uuid())
+  preweightPondEntryId String   @map("preweight_pond_entry_id")
+  number               Int // count of shrimp
+  weight               Float // total weight grams
+  averageWeight        Float    @map("average_weight") // weight/number
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  preweightPondEntry PreweightPondEntry @relation(fields: [preweightPondEntryId], references: [id], onDelete: Cascade)
+
+  @@index([preweightPondEntryId])
+  @@map("preweight_samples")
+}
+
+// --- Form 2: Population Sampling (Muestreo de Poblacion con Atarraya) ---
+
+model PopulationSampling {
+  id               String   @id @default(uuid())
+  farmId           String   @map("farm_id")
+  pondId           String   @map("pond_id")
+  samplingDate     DateTime @map("sampling_date")
+  hectares         Float
+  stockingCount    Int      @map("stocking_count")
+  castNetCounts    Json     @map("cast_net_counts") // flat array of integers
+  gridColumns      Int      @default(4) @map("grid_columns")
+  entradaRows      Int      @default(5) @map("entrada_rows")
+  salidaRows       Int      @default(1) @map("salida_rows")
+  numberOfThrows   Int      @map("number_of_throws")
+  totalCount       Int      @map("total_count")
+  countPerThrow    Float    @map("count_per_throw")
+  shrimpPerSqMeter Float    @map("shrimp_per_sq_meter")
+  averageWeight    Float    @map("average_weight")
+  waterLevel       Float    @map("water_level")
+  oldMolts         Int      @default(0) @map("old_molts")
+  oldMoltsPercent  Float    @map("old_molts_percent")
+  freshMolts       Int      @default(0) @map("fresh_molts")
+  freshMoltsPercent Float   @map("fresh_molts_percent")
+  diseaseCount     Int      @default(0) @map("disease_count")
+  diseasePercent   Float    @map("disease_percent")
+  observations     String?
+  createdById      String   @map("created_by_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  farm      Farm @relation(fields: [farmId], references: [id])
+  pond      Pond @relation(fields: [pondId], references: [id])
+  createdBy User @relation("populationSamplingCreator", fields: [createdById], references: [id])
+
+  @@index([farmId])
+  @@index([pondId])
+  @@index([samplingDate])
+  @@map("population_samplings")
+}
+
+// --- Form 3: Daily Gate & Water Control (Control Diario de Compuertas y Agua) ---
+
+model DailyWaterControl {
+  id          String   @id @default(uuid())
+  farmId      String   @map("farm_id")
+  recordDate  DateTime @map("record_date")
+  recordTime  String   @map("record_time") // "AM" or "PM"
+  farmSection String?  @map("farm_section") // e.g. "La Esmeralda", "La Entrada"
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  farm      Farm                  @relation(fields: [farmId], references: [id])
+  createdBy User                  @relation("dailyWaterControlCreator", fields: [createdById], references: [id])
+  entries   DailyWaterPondEntry[]
+
+  @@unique([farmId, recordDate, recordTime, farmSection])
+  @@index([farmId])
+  @@index([recordDate])
+  @@map("daily_water_controls")
+}
+
+model DailyWaterPondEntry {
+  id                  String   @id @default(uuid())
+  dailyWaterControlId String   @map("daily_water_control_id")
+  pondId              String   @map("pond_id")
+  gateId              String   @map("gate_id") // "L1", "C", or "L2"
+  gateHeightInches    Float?   @map("gate_height_inches")
+  turbiditySecchiCm   Float?   @map("turbidity_secchi_cm")
+  waterColor          String?  @map("water_color")
+  observations        String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  dailyWaterControl DailyWaterControl @relation(fields: [dailyWaterControlId], references: [id], onDelete: Cascade)
+  pond              Pond              @relation(fields: [pondId], references: [id])
+
+  @@index([dailyWaterControlId])
+  @@index([pondId])
+  @@map("daily_water_pond_entries")
 }
