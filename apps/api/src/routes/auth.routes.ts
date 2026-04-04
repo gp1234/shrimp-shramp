@@ -190,7 +190,7 @@ authRouter.get(
             include: {
               farms: {
                 where: { isActive: true },
-                orderBy: { name: "asc" },
+                orderBy: { createdAt: "asc" },
               },
             },
           },
