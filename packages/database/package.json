@@ -8,6 +8,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-projection": "tsx prisma/seed-projection.ts",
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "clean": "rm -rf node_modules generated"

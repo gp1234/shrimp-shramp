@@ -1,5 +1,6 @@
 import { PrismaClient } from "../generated/prisma";
 import * as bcrypt from "bcryptjs";
+import { seedProjectionData } from "./seed-projection";
 
 const prisma = new PrismaClient();
 
@@ -7,6 +8,11 @@ async function main() {
   console.log("🦐 Seeding Shrampi database...\n");
 
   // Clean existing data (reverse dependency order)
+  await prisma.pondWeeklyAnalysis.deleteMany();
+  await prisma.feedProjectionPondDay.deleteMany();
+  await prisma.weeklyFeedProjection.deleteMany();
+  await prisma.feedSupplierTable.deleteMany();
+  await prisma.fCAReference.deleteMany();
   await prisma.revenueRecord.deleteMany();
   await prisma.productionCost.deleteMany();
   await prisma.operationalCost.deleteMany();
@@ -634,6 +640,11 @@ async function main() {
     ],
   });
   console.log("✅ Created 5 staff members");
+
+  // ──────────────────────────────────────────
+  // 18. Projection Reference Data
+  // ──────────────────────────────────────────
+  await seedProjectionData(farm.id);
 
   console.log("\n🎉 Seed completed successfully!");
 }

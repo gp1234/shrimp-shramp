@@ -1,4 +1,17 @@
 // ============================================
+// Feed Projection & Analysis Types
+// ============================================
+
+export type {
+  PondDayProjection,
+  PondWeeklySummary,
+  WeeklyProjectionResponse,
+  CreateProjectionRequest,
+  UpdateRealDataRequest,
+  PondAnalysis,
+} from './projection';
+
+// ============================================
 // API Request / Response Types
 // ============================================
 

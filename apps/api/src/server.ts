@@ -17,6 +17,7 @@ import { kpiRouter } from "./routes/kpi.routes";
 import { preweightRouter } from "./routes/sampling/preweight.routes";
 import { populationRouter } from "./routes/sampling/population.routes";
 import { waterControlRouter } from "./routes/sampling/water-control.routes";
+import { projectionRouter } from "./routes/projection.routes";
 import { errorHandler } from "./middleware/error.middleware";
 
 const app = express();
@@ -50,6 +51,7 @@ app.use("/api/v1/kpi", kpiRouter);
 app.use("/api/v1/sampling/preweight", preweightRouter);
 app.use("/api/v1/sampling/population", populationRouter);
 app.use("/api/v1/water-control", waterControlRouter);
+app.use("/api/v1/projection", projectionRouter);
 
 // ── Error handler ──
 app.use(errorHandler);

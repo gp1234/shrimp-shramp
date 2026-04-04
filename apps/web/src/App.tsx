@@ -18,6 +18,8 @@ import { PreweightList } from "./pages/sampling/PreweightList";
 import { PreweightForm } from "./pages/sampling/PreweightForm";
 import { DailyWaterControlList } from "./pages/water-control/DailyWaterControlList";
 import { DailyWaterControlForm } from "./pages/water-control/DailyWaterControlForm";
+import { ProjectionList } from "./pages/projection/ProjectionList";
+import { ProjectionView } from "./pages/projection/ProjectionView";
 import { Box, CircularProgress } from "@mui/material";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -96,6 +98,10 @@ export default function App() {
                 <Route path="/water-control" element={<DailyWaterControlList />} />
                 <Route path="/water-control/new" element={<DailyWaterControlForm />} />
                 <Route path="/water-control/:id" element={<DailyWaterControlForm />} />
+                <Route path="/projection" element={<ProjectionList />} />
+                <Route path="/projections" element={<ProjectionList />} />
+                <Route path="/projection/new" element={<ProjectionView />} />
+                <Route path="/projection/:id" element={<ProjectionView />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>

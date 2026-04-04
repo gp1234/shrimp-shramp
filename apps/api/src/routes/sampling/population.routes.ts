@@ -5,6 +5,12 @@ import {
   authorize,
   AuthenticatedRequest,
 } from "../../middleware/auth.middleware";
+import {
+  recalculateFromRealData,
+  type SupplierTableEntry,
+} from "../../services/feedProjectionCalculator";
+import { generateWeeklyAnalysis } from "../../services/alertEngine";
+import type { PondDayProjection } from "@shrampi/types";
 
 export const populationRouter = Router();
 populationRouter.use(authenticate);
@@ -73,6 +79,20 @@ populationRouter.post(
           pond: { select: { name: true, code: true } },
         },
       });
+
+      // Auto-link: update active projection if one covers this sampling date
+      try {
+        await autoUpdateProjection(
+          farmId,
+          pondId,
+          new Date(samplingDate),
+          data.averageWeight,
+          data.shrimpPerSqMeter,
+        );
+      } catch (linkErr) {
+        // Non-fatal: log but don't fail the sampling creation
+        console.error("Auto-projection update failed:", linkErr);
+      }
 
       res.status(201).json({ success: true, data: sampling });
     } catch (error) {
@@ -196,3 +216,139 @@ populationRouter.delete(
     }
   },
 );
+
+// ============================================
+// Auto-link: update active projection from new sampling
+// ============================================
+
+const DAY_LABELS: Record<number, string> = {
+  0: "VIERNES", 1: "SABADO", 2: "DOMINGO", 3: "LUNES",
+  4: "MARTES", 5: "MIERCOLES", 6: "JUEVES", 7: "VIERNES",
+};
+
+async function autoUpdateProjection(
+  farmId: string,
+  pondId: string,
+  samplingDate: Date,
+  realWeight: number,
+  realDensity: number,
+) {
+  // Find active projection covering this date
+  const projection = await prisma.weeklyFeedProjection.findFirst({
+    where: {
+      farmId,
+      status: { in: ["draft", "approved"] },
+      weekStartDate: { lte: samplingDate },
+      weekEndDate: { gte: samplingDate },
+    },
+  });
+
+  if (!projection) return;
+
+  // Fetch existing pond days for this pond in this projection
+  const existingDays = await prisma.feedProjectionPondDay.findMany({
+    where: {
+      weeklyFeedProjectionId: projection.id,
+      pondId,
+    },
+    orderBy: { dayIndex: "asc" },
+    include: { pond: { select: { name: true } } },
+  });
+
+  if (existingDays.length === 0) return;
+
+  // Find which day matches the sampling date
+  const targetDateStr = samplingDate.toISOString().split("T")[0];
+  const targetDay = existingDays.find(
+    (d) => d.dayDate.toISOString().split("T")[0] === targetDateStr,
+  );
+
+  if (!targetDay) return;
+
+  // Fetch supplier table
+  const supplierTable: SupplierTableEntry[] =
+    await prisma.feedSupplierTable.findMany({
+      where: {
+        farmId: projection.farmId,
+        supplierName: projection.supplierName,
+      },
+      select: { weightGrams: true, bwPercent: true },
+      orderBy: { weightGrams: "asc" },
+    });
+
+  // Convert DB records to PondDayProjection
+  const currentDays: PondDayProjection[] = existingDays.map((d) => ({
+    pondId: d.pondId,
+    pondName: d.pond.name,
+    dayDate: d.dayDate.toISOString().split("T")[0]!,
+    dayIndex: d.dayIndex,
+    dayLabel: DAY_LABELS[d.dayIndex] ?? "",
+    isRealData: d.isRealData,
+    hectares: d.hectares,
+    weight: d.weight,
+    weightProjected: d.weightProjected ?? undefined,
+    weightDeviation: d.weightDeviation ?? undefined,
+    density: d.density,
+    biomassLbs: d.biomassLbs ?? 0,
+    biomassKg: d.biomassKg ?? 0,
+    bwPercent: d.bwPercent ?? 0,
+    feedQuantityLbs: d.feedQuantityLbs ?? 0,
+    feedQuantityOverride: d.feedQuantityOverride ?? undefined,
+    khdFeed: d.khdFeed ?? 0,
+    feedType: d.feedType ?? undefined,
+  }));
+
+  // Recalculate from real data
+  const updatedDays = recalculateFromRealData(
+    currentDays,
+    targetDay.dayIndex,
+    realWeight,
+    supplierTable,
+    realDensity,
+  );
+
+  // Update all days in DB
+  const updateOps = updatedDays.map((day) => {
+    const dbDay = existingDays.find((d) => d.dayIndex === day.dayIndex);
+    return prisma.feedProjectionPondDay.update({
+      where: { id: dbDay!.id },
+      data: {
+        isRealData: day.isRealData,
+        weight: day.weight,
+        weightProjected: day.weightProjected ?? null,
+        weightDeviation: day.weightDeviation ?? null,
+        density: day.density,
+        biomassLbs: day.biomassLbs,
+        biomassKg: day.biomassKg,
+        bwPercent: day.bwPercent,
+        feedQuantityLbs: day.feedQuantityLbs,
+        feedQuantityOverride: day.feedQuantityOverride ?? null,
+        khdFeed: day.khdFeed,
+      },
+    });
+  });
+  await prisma.$transaction(updateOps);
+
+  // Recalculate total weekly feed
+  const allPondDays = await prisma.feedProjectionPondDay.findMany({
+    where: { weeklyFeedProjectionId: projection.id },
+  });
+  const totalWeeklyFeedKg =
+    Math.round(
+      allPondDays.reduce((sum, d) => sum + (d.feedQuantityLbs ?? 0), 0) *
+        0.4536 *
+        100,
+    ) / 100;
+
+  await prisma.weeklyFeedProjection.update({
+    where: { id: projection.id },
+    data: { totalWeeklyFeedKg },
+  });
+
+  // Generate weekly analysis with alerts
+  await generateWeeklyAnalysis(projection.id, pondId);
+
+  console.log(
+    `🔗 Auto-updated projection ${projection.id} for pond ${pondId} with real data (weight: ${realWeight}g, density: ${realDensity}/m²)`,
+  );
+}
