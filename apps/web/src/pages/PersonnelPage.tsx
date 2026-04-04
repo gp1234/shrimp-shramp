@@ -23,6 +23,10 @@ import {
   MenuItem,
   Snackbar,
   Alert,
+  Switch,
+  FormControlLabel,
+  Checkbox,
+  Divider,
 } from "@mui/material";
 import {
   Add,
@@ -31,6 +35,7 @@ import {
   HourglassEmpty,
   Error as ErrorIcon,
   Edit,
+  ContentCopy,
 } from "@mui/icons-material";
 import api from "../api";
 import { useFarm } from "../contexts/FarmContext";
@@ -53,6 +58,11 @@ interface Staff {
   isActive: boolean;
   farmId: string;
   farm: { name: string };
+  user?: {
+    email: string;
+    isActive: boolean;
+    accessiblePages: string[];
+  } | null;
 }
 interface Task {
   id: string;
@@ -66,14 +76,47 @@ interface Task {
   assignments: { staff: { firstName: string; lastName: string } }[];
 }
 
-const EMPTY_STAFF = {
+const ALL_PAGES = [
+  "farms",
+  "ponds",
+  "cycles",
+  "feeding",
+  "water_quality",
+  "inventory",
+  "personnel",
+  "financial",
+  "preweight",
+  "population_sampling",
+  "water_control",
+  "settings",
+];
+
+interface StaffForm {
+  firstName: string;
+  lastName: string;
+  position: string;
+  phone: string;
+  farmId: string;
+  email: string;
+  password: string;
+  isActive: boolean;
+  accessiblePages: string[];
+  hireDate: string;
+}
+
+const EMPTY_STAFF: StaffForm = {
   firstName: "",
   lastName: "",
   position: "",
   phone: "",
   farmId: "",
+  email: "",
+  password: "",
+  isActive: true,
+  accessiblePages: ALL_PAGES,
   hireDate: new Date().toISOString().slice(0, 10),
 };
+
 const EMPTY_TASK = {
   title: "",
   description: "",
@@ -88,14 +131,20 @@ export function PersonnelPage() {
   const qc = useQueryClient();
   const { currentFarm } = useFarm();
   const farmId = currentFarm?.id;
+
   const [staffDialog, setStaffDialog] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
-  const [sf, setSf] = useState(EMPTY_STAFF);
+  const [sf, setSf] = useState<StaffForm>(EMPTY_STAFF);
   const [taskDialog, setTaskDialog] = useState(false);
   const [tf, setTf] = useState(EMPTY_TASK);
   const [snack, setSnack] = useState<{
     msg: string;
     severity: "success" | "error";
+  } | null>(null);
+  const [credentials, setCredentials] = useState<{
+    email: string;
+    password: string;
+    role: string;
   } | null>(null);
 
   const { data: staff, isLoading: staffLoading } = useQuery<Staff[]>({
@@ -121,27 +170,48 @@ export function PersonnelPage() {
     enabled: !!farmId,
   });
 
-  const ok = (key: string) => () => {
-    qc.invalidateQueries({ queryKey: [key] });
-    setStaffDialog(false);
-    setTaskDialog(false);
-    setEditingStaff(null);
-    setSnack({ msg: t("crud.created"), severity: "success" });
-  };
   const err = () => setSnack({ msg: t("crud.error"), severity: "error" });
+
   const createStaff = useMutation({
     mutationFn: (d: any) => api.post("/personnel/staff", d),
-    onSuccess: ok("personnel-staff"),
-    onError: err,
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["personnel-staff"] });
+      setStaffDialog(false);
+      setEditingStaff(null);
+      const creds = res.data?.data?.credentials;
+      if (creds) {
+        setCredentials(creds);
+      } else {
+        setSnack({ msg: t("crud.created"), severity: "success" });
+      }
+    },
+    onError: (error: any) => {
+      const msg =
+        error?.response?.status === 409
+          ? t("personnel.emailExists")
+          : t("crud.error");
+      setSnack({ msg, severity: "error" });
+    },
   });
+
   const updateStaff = useMutation({
     mutationFn: ({ id, d }: any) => api.put(`/personnel/staff/${id}`, d),
-    onSuccess: ok("personnel-staff"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["personnel-staff"] });
+      setStaffDialog(false);
+      setEditingStaff(null);
+      setSnack({ msg: t("crud.updated"), severity: "success" });
+    },
     onError: err,
   });
+
   const createTask = useMutation({
     mutationFn: (d: any) => api.post("/personnel/tasks", d),
-    onSuccess: ok("personnel-tasks"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["personnel-tasks"] });
+      setTaskDialog(false);
+      setSnack({ msg: t("crud.created"), severity: "success" });
+    },
     onError: err,
   });
 
@@ -150,6 +220,7 @@ export function PersonnelPage() {
     setSf({ ...EMPTY_STAFF, farmId: farms?.[0]?.id || "" });
     setStaffDialog(true);
   };
+
   const openEditStaff = (s: Staff) => {
     setEditingStaff(s);
     setSf({
@@ -158,23 +229,42 @@ export function PersonnelPage() {
       position: s.position,
       phone: s.phone || "",
       farmId: s.farmId,
+      email: s.user?.email || "",
+      password: "",
+      isActive: s.user?.isActive ?? true,
+      accessiblePages: s.user?.accessiblePages || ALL_PAGES,
       hireDate: "",
     });
     setStaffDialog(true);
   };
+
   const submitStaff = () => {
-    const p: any = {
-      firstName: sf.firstName,
-      lastName: sf.lastName,
-      position: sf.position,
-      farmId: sf.farmId,
-    };
-    if (sf.phone) p.phone = sf.phone;
-    if (!editingStaff && sf.hireDate)
-      p.hireDate = new Date(sf.hireDate).toISOString();
-    editingStaff
-      ? updateStaff.mutate({ id: editingStaff.id, d: p })
-      : createStaff.mutate(p);
+    if (editingStaff) {
+      const d: any = {
+        firstName: sf.firstName,
+        lastName: sf.lastName,
+        position: sf.position,
+        farmId: sf.farmId,
+        phone: sf.phone,
+        email: sf.email,
+        isActive: sf.isActive,
+        accessiblePages: sf.accessiblePages,
+      };
+      if (sf.password) d.password = sf.password;
+      updateStaff.mutate({ id: editingStaff.id, d });
+    } else {
+      const d: any = {
+        firstName: sf.firstName,
+        lastName: sf.lastName,
+        position: sf.position,
+        farmId: sf.farmId,
+      };
+      if (sf.phone) d.phone = sf.phone;
+      if (sf.email) d.email = sf.email;
+      if (sf.hireDate) d.hireDate = new Date(sf.hireDate).toISOString();
+      d.accessiblePages = sf.accessiblePages;
+      createStaff.mutate(d);
+    }
   };
 
   const openCreateTask = () => {
@@ -187,6 +277,15 @@ export function PersonnelPage() {
     if (tf.dueDate) p.dueDate = new Date(tf.dueDate).toISOString();
     if (tf.pondId) p.pondId = tf.pondId;
     createTask.mutate(p);
+  };
+
+  const togglePage = (page: string) => {
+    setSf((prev) => ({
+      ...prev,
+      accessiblePages: prev.accessiblePages.includes(page)
+        ? prev.accessiblePages.filter((p) => p !== page)
+        : [...prev.accessiblePages, page],
+    }));
   };
 
   const pc: Record<string, string> = {
@@ -241,7 +340,15 @@ export function PersonnelPage() {
               ))
           : staff?.map((s) => (
               <Grid key={s.id} size={{ xs: 12, sm: 6, md: 3 }}>
-                <Card sx={{ height: "100%", textAlign: "center" }}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    "&:hover": { boxShadow: 4 },
+                  }}
+                  onClick={() => openEditStaff(s)}
+                >
                   <CardContent sx={{ p: 2.5 }}>
                     <Box
                       sx={{
@@ -253,7 +360,10 @@ export function PersonnelPage() {
                       <Tooltip title={t("crud.edit")}>
                         <IconButton
                           size="small"
-                          onClick={() => openEditStaff(s)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditStaff(s);
+                          }}
                         >
                           <Edit sx={{ fontSize: 14 }} />
                         </IconButton>
@@ -265,7 +375,9 @@ export function PersonnelPage() {
                         height: 52,
                         mx: "auto",
                         mb: 1.5,
-                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                        background: s.user?.isActive !== false
+                          ? `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`
+                          : "#94a3b8",
                         fontSize: "1.1rem",
                         fontWeight: 700,
                       }}
@@ -278,21 +390,37 @@ export function PersonnelPage() {
                     </Typography>
                     <Typography
                       variant="caption"
-                      sx={{ color: "text.secondary", display: "block", mb: 1 }}
+                      sx={{ color: "text.secondary", display: "block" }}
                     >
-                      {s.position} • {s.farm.name}
+                      {t(`personnel.position.${s.position}`, s.position)} • {s.farm.name}
                     </Typography>
+                    {s.user?.email && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "text.secondary",
+                          display: "block",
+                          mb: 1,
+                          fontSize: "0.65rem",
+                        }}
+                      >
+                        {s.user.email}
+                      </Typography>
+                    )}
                     <Chip
                       label={
-                        s.isActive ? t("status.active") : t("status.inactive")
+                        s.user?.isActive !== false
+                          ? t("status.active")
+                          : t("status.inactive")
                       }
                       size="small"
                       sx={{
                         bgcolor: alpha(
-                          s.isActive ? "#4caf50" : "#94a3b8",
+                          s.user?.isActive !== false ? "#4caf50" : "#94a3b8",
                           0.12,
                         ),
-                        color: s.isActive ? "#4caf50" : "#94a3b8",
+                        color:
+                          s.user?.isActive !== false ? "#4caf50" : "#94a3b8",
                         fontWeight: 600,
                         fontSize: "0.65rem",
                       }}
@@ -303,6 +431,7 @@ export function PersonnelPage() {
             ))}
       </Grid>
 
+      {/* Tasks section */}
       <Box
         sx={{
           display: "flex",
@@ -361,7 +490,7 @@ export function PersonnelPage() {
                           variant="caption"
                           sx={{ color: "text.secondary" }}
                         >
-                          {task.pond ? `${task.pond.code} — ` : ""}
+                          {task.pond ? `${task.pond.name} — ` : ""}
                           {task.assignments
                             .map(
                               (a) => `${a.staff.firstName} ${a.staff.lastName}`,
@@ -419,7 +548,7 @@ export function PersonnelPage() {
             ))}
       </Box>
 
-      {/* Staff Dialog */}
+      {/* Unified Staff Dialog */}
       <Dialog
         open={staffDialog}
         onClose={() => setStaffDialog(false)}
@@ -437,12 +566,17 @@ export function PersonnelPage() {
             pt: "16px !important",
           }}
         >
+          {/* Personal Info */}
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 0.5 }}>
+            {t("personnel.personalInfo")}
+          </Typography>
           <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
               label={t("crud.firstName")}
               value={sf.firstName}
               onChange={(e) => setSf({ ...sf, firstName: e.target.value })}
               fullWidth
+              size="small"
               required
             />
             <TextField
@@ -450,36 +584,49 @@ export function PersonnelPage() {
               value={sf.lastName}
               onChange={(e) => setSf({ ...sf, lastName: e.target.value })}
               fullWidth
+              size="small"
               required
             />
           </Box>
-          <TextField
-            label={t("crud.position")}
-            value={sf.position}
-            onChange={(e) => setSf({ ...sf, position: e.target.value })}
-            fullWidth
-            required
-          />
-          <TextField
-            select
-            label={t("crud.farm")}
-            value={sf.farmId}
-            onChange={(e) => setSf({ ...sf, farmId: e.target.value })}
-            fullWidth
-            required
-          >
-            {farms?.map((f) => (
-              <MenuItem key={f.id} value={f.id}>
-                {f.name}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <TextField
+              select
+              label={t("crud.position")}
+              value={sf.position}
+              onChange={(e) => setSf({ ...sf, position: e.target.value })}
+              fullWidth
+              size="small"
+              required
+            >
+              {["Farm Manager", "Supervisor", "Operator", "Viewer"].map((p) => (
+                <MenuItem key={p} value={p}>
+                  {t(`personnel.position.${p}`)}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label={t("crud.farm")}
+              value={sf.farmId}
+              onChange={(e) => setSf({ ...sf, farmId: e.target.value })}
+              fullWidth
+              size="small"
+              required
+            >
+              {farms?.map((f) => (
+                <MenuItem key={f.id} value={f.id}>
+                  {f.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
           <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
               label={t("crud.phone")}
               value={sf.phone}
               onChange={(e) => setSf({ ...sf, phone: e.target.value })}
               fullWidth
+              size="small"
             />
             {!editingStaff && (
               <TextField
@@ -488,10 +635,104 @@ export function PersonnelPage() {
                 value={sf.hireDate}
                 onChange={(e) => setSf({ ...sf, hireDate: e.target.value })}
                 fullWidth
+                size="small"
                 InputLabelProps={{ shrink: true }}
               />
             )}
           </Box>
+
+          <Divider />
+
+          {/* Account Section */}
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            {t("personnel.accountSection")}
+          </Typography>
+          <TextField
+            label={t("personnel.email")}
+            type="email"
+            value={sf.email}
+            onChange={(e) => setSf({ ...sf, email: e.target.value })}
+            fullWidth
+            size="small"
+            placeholder="nombre.apellido@shrampi.local"
+            helperText={
+              !editingStaff ? t("personnel.emailHelper") : undefined
+            }
+          />
+          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+            <TextField
+              label={
+                editingStaff
+                  ? t("personnel.newPassword")
+                  : t("personnel.password")
+              }
+              type="text"
+              value={sf.password}
+              onChange={(e) => setSf({ ...sf, password: e.target.value })}
+              fullWidth
+              size="small"
+              placeholder={
+                editingStaff ? t("personnel.passwordPlaceholder") : undefined
+              }
+              helperText={
+                !editingStaff ? t("personnel.passwordAutoHelper") : undefined
+              }
+            />
+            {editingStaff && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={sf.isActive}
+                    onChange={(e) =>
+                      setSf({ ...sf, isActive: e.target.checked })
+                    }
+                    color="success"
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    {sf.isActive
+                      ? t("status.active")
+                      : t("status.inactive")}
+                  </Typography>
+                }
+                sx={{ minWidth: 120 }}
+              />
+            )}
+          </Box>
+
+          {/* Permissions Section */}
+          <>
+            <Divider />
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+              {t("personnel.permissions")}
+            </Typography>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gap: 0,
+                }}
+              >
+                {ALL_PAGES.map((page) => (
+                  <FormControlLabel
+                    key={page}
+                    control={
+                      <Checkbox
+                        checked={sf.accessiblePages.includes(page)}
+                        onChange={() => togglePage(page)}
+                        size="small"
+                      />
+                    }
+                    label={
+                      <Typography variant="body2">
+                        {t(`personnel.page.${page}`)}
+                      </Typography>
+                    }
+                  />
+                ))}
+              </Box>
+            </>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setStaffDialog(false)}>
@@ -573,7 +814,7 @@ export function PersonnelPage() {
             <MenuItem value="">—</MenuItem>
             {ponds?.map((p) => (
               <MenuItem key={p.id} value={p.id}>
-                {p.code} — {p.name}
+                {p.name}
               </MenuItem>
             ))}
           </TextField>
@@ -584,6 +825,103 @@ export function PersonnelPage() {
           </Button>
           <Button variant="contained" onClick={submitTask} disabled={!tf.title}>
             {t("crud.create")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Credentials Dialog — shown after creating staff */}
+      <Dialog
+        open={!!credentials}
+        onClose={() => {
+          setCredentials(null);
+          setSnack({ msg: t("crud.created"), severity: "success" });
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>{t("personnel.credentialsTitle")}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            {t("personnel.credentialsMsg")}
+          </Typography>
+          <Box
+            sx={{
+              bgcolor: "action.hover",
+              borderRadius: 2,
+              p: 2,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  {t("personnel.email")}
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {credentials?.email}
+                </Typography>
+              </Box>
+              <IconButton
+                size="small"
+                onClick={() =>
+                  navigator.clipboard.writeText(credentials?.email || "")
+                }
+              >
+                <ContentCopy fontSize="small" />
+              </IconButton>
+            </Box>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  {t("personnel.password")}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 700, fontFamily: "monospace" }}
+                >
+                  {credentials?.password}
+                </Typography>
+              </Box>
+              <IconButton
+                size="small"
+                onClick={() =>
+                  navigator.clipboard.writeText(credentials?.password || "")
+                }
+              >
+                <ContentCopy fontSize="small" />
+              </IconButton>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                {t("crud.position")}
+              </Typography>
+              <Typography variant="body2">{credentials?.role}</Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setCredentials(null);
+              setSnack({ msg: t("crud.created"), severity: "success" });
+            }}
+          >
+            {t("personnel.understood")}
           </Button>
         </DialogActions>
       </Dialog>

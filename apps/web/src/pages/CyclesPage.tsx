@@ -246,7 +246,7 @@ export function CyclesPage() {
                           variant="caption"
                           sx={{ color: "text.secondary" }}
                         >
-                          {cycle.pond.code} — {cycle.pond.name} •{" "}
+                          {cycle.pond.name} •{" "}
                           {cycle.pond.area} ha
                         </Typography>
                       </Box>
@@ -397,7 +397,7 @@ export function CyclesPage() {
           >
             {ponds?.map((p) => (
               <MenuItem key={p.id} value={p.id}>
-                {p.code} — {p.name}
+                {p.name}
               </MenuItem>
             ))}
           </TextField>

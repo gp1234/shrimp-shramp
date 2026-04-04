@@ -106,7 +106,43 @@
     "team": "Equipo",
     "tasks": "Tareas",
     "addTask": "Nueva Tarea",
-    "unassigned": "Sin asignar"
+    "unassigned": "Sin asignar",
+    "email": "Correo electrónico",
+    "emailHelper": "Dejar vacío para auto-generar (nombre.apellido@shrampi.local)",
+    "emailExists": "Este correo ya está registrado",
+    "password": "Contraseña",
+    "newPassword": "Nueva Contraseña",
+    "changePassword": "Cambiar Contraseña",
+    "changePasswordMsg": "Ingresa la nueva contraseña para {{name}}",
+    "passwordChanged": "Contraseña actualizada",
+    "passwordPlaceholder": "Dejar vacío para mantener actual",
+    "passwordAutoHelper": "Dejar vacío para auto-generar",
+    "credentialsTitle": "Credenciales del Usuario",
+    "credentialsMsg": "Guarda estas credenciales. La contraseña no se podrá ver de nuevo.",
+    "understood": "Entendido",
+    "personalInfo": "Información Personal",
+    "accountSection": "Cuenta de Usuario",
+    "permissions": "Acceso a Páginas",
+    "position": {
+      "Farm Manager": "Gerente de Granja",
+      "Supervisor": "Supervisor",
+      "Operator": "Operador",
+      "Viewer": "Observador"
+    },
+    "page": {
+      "farms": "Granjas",
+      "ponds": "Estanques",
+      "cycles": "Ciclos de Producción",
+      "feeding": "Alimentación",
+      "water_quality": "Calidad del Agua",
+      "inventory": "Inventario",
+      "personnel": "Personal",
+      "financial": "Finanzas",
+      "preweight": "Prepeso Semanal",
+      "population_sampling": "Muestreo de Población",
+      "water_control": "Control de Agua",
+      "settings": "Configuración"
+    }
   },
   "financial": {
     "title": "Finanzas",
@@ -170,6 +206,26 @@
     "active": "Activo",
     "inactive": "Inactivo",
     "maintenance": "Mantenimiento"
+  },
+  "seed": {
+    "category": {
+      "labor": "Mano de Obra",
+      "feed": "Alimento",
+      "chemicals": "Químicos",
+      "energy": "Energía",
+      "equipment": "Equipos",
+      "maintenance": "Mantenimiento",
+      "transport": "Transporte",
+      "other": "Otros"
+    },
+    "cost": {
+      "feedSupply": "Suministro de alimento del ciclo completo",
+      "labor3Months": "Mano de obra por 3 meses",
+      "electricityDiesel": "Electricidad y diésel"
+    },
+    "revenue": {
+      "harvestSale": "Venta de cosecha completa a Pacific Seafood Exports"
+    }
   },
   "common": {
     "noData": "—"

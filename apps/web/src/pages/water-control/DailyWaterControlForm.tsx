@@ -63,7 +63,7 @@ function buildEntriesFromPonds(ponds: Pond[]): EntryRow[] {
     for (const gate of GATES) {
       entries.push({
         pondId: pond.id,
-        pondLabel: `${pond.code} — ${pond.name}`,
+        pondLabel: pond.name,
         gateId: gate,
         gateHeightInches: "",
         turbiditySecchiCm: "",

@@ -106,7 +106,43 @@
     "team": "Team",
     "tasks": "Tasks",
     "addTask": "New Task",
-    "unassigned": "Unassigned"
+    "unassigned": "Unassigned",
+    "email": "Email",
+    "emailHelper": "Leave empty to auto-generate (firstname.lastname@shrampi.local)",
+    "emailExists": "This email is already registered",
+    "password": "Password",
+    "newPassword": "New Password",
+    "changePassword": "Change Password",
+    "changePasswordMsg": "Enter a new password for {{name}}",
+    "passwordChanged": "Password updated",
+    "passwordPlaceholder": "Leave empty to keep current",
+    "passwordAutoHelper": "Leave empty to auto-generate",
+    "credentialsTitle": "User Credentials",
+    "credentialsMsg": "Save these credentials. The password cannot be viewed again.",
+    "understood": "Got it",
+    "personalInfo": "Personal Info",
+    "accountSection": "User Account",
+    "permissions": "Page Access",
+    "position": {
+      "Farm Manager": "Farm Manager",
+      "Supervisor": "Supervisor",
+      "Operator": "Operator",
+      "Viewer": "Viewer"
+    },
+    "page": {
+      "farms": "Farms",
+      "ponds": "Ponds",
+      "cycles": "Production Cycles",
+      "feeding": "Feeding",
+      "water_quality": "Water Quality",
+      "inventory": "Inventory",
+      "personnel": "Personnel",
+      "financial": "Financial",
+      "preweight": "Weekly Pre-weight",
+      "population_sampling": "Population Sampling",
+      "water_control": "Water Control",
+      "settings": "Settings"
+    }
   },
   "financial": {
     "title": "Financial",
@@ -170,6 +206,26 @@
     "active": "Active",
     "inactive": "Inactive",
     "maintenance": "Maintenance"
+  },
+  "seed": {
+    "category": {
+      "labor": "Labor",
+      "feed": "Feed",
+      "chemicals": "Chemicals",
+      "energy": "Energy",
+      "equipment": "Equipment",
+      "maintenance": "Maintenance",
+      "transport": "Transport",
+      "other": "Other"
+    },
+    "cost": {
+      "feedSupply": "Feed supply for entire cycle",
+      "labor3Months": "Labor for 3 months",
+      "electricityDiesel": "Electricity and diesel"
+    },
+    "revenue": {
+      "harvestSale": "Full harvest sale to Pacific Seafood Exports"
+    }
   },
   "common": {
     "noData": "—"

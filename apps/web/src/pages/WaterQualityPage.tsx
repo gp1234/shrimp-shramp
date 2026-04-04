@@ -267,7 +267,7 @@ export function WaterQualityPage() {
                       >
                         <Science sx={{ fontSize: 18, color: "primary.main" }} />
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {log.pond.code}
+                          {log.pond.name}
                         </Typography>
                       </Box>
                       <Box
@@ -384,7 +384,7 @@ export function WaterQualityPage() {
           >
             {ponds?.map((p) => (
               <MenuItem key={p.id} value={p.id}>
-                {p.code} — {p.name}
+                {p.name}
               </MenuItem>
             ))}
           </TextField>
@@ -473,7 +473,7 @@ export function WaterQualityPage() {
         <DialogTitle>{t("crud.confirmDelete")}</DialogTitle>
         <DialogContent>
           <Typography>
-            {t("crud.deleteMsg", { name: deleteTarget?.pond.code || "" })}
+            {t("crud.deleteMsg", { name: deleteTarget?.pond.name || "" })}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

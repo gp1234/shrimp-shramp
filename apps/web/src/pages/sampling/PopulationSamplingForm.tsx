@@ -287,7 +287,7 @@ export function PopulationSamplingForm() {
         >
           {ponds?.map((p) => (
             <MenuItem key={p.id} value={p.id}>
-              {p.code} — {p.name}
+              {p.name}
             </MenuItem>
           ))}
         </TextField>
@@ -330,119 +330,50 @@ export function PopulationSamplingForm() {
             {t("sampling.population.castNetGrid")}
           </Typography>
 
-          {/* Column headers */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: `60px repeat(${gridCols}, 1fr) 50px`,
-              gap: 0.5,
-              mb: 0.5,
-            }}
-          >
-            <Box />
-            {Array.from({ length: gridCols }, (_, c) => (
-              <Typography
-                key={c}
-                variant="caption"
-                sx={{
-                  textAlign: "center",
-                  fontWeight: 600,
-                  color: "text.secondary",
-                }}
-              >
-                {c + 1}
-              </Typography>
-            ))}
-            <Typography
-              variant="caption"
-              sx={{ textAlign: "center", fontWeight: 600, color: "text.secondary" }}
-            >
-              &Sigma;
-            </Typography>
-          </Box>
-
           {/* Grid rows */}
-          {Array.from({ length: gridRows }, (_, r) => {
-            const isEntrada = r < entradaRows;
-            const label = isEntrada
-              ? t("sampling.population.entrada")
-              : t("sampling.population.salida");
-            const showLabel =
-              (isEntrada && r === 0) || (!isEntrada && r === entradaRows);
-
-            return (
+          {Array.from({ length: gridRows }, (_, r) => (
+            <Box
+              key={r}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${gridCols}, 1fr) 50px`,
+                gap: 0.5,
+                mb: 0.5,
+              }}
+            >
+              {Array.from({ length: gridCols }, (_, c) => (
+                <TextField
+                  key={c}
+                  size="small"
+                  type="number"
+                  inputProps={{
+                    min: 0,
+                    style: {
+                      textAlign: "center",
+                      padding: "6px 4px",
+                      fontSize: "0.85rem",
+                    },
+                  }}
+                  sx={{ "& .MuiOutlinedInput-root": { minWidth: 0 } }}
+                  {...register(`castNetCounts.${r}.${c}`)}
+                />
+              ))}
               <Box
-                key={r}
                 sx={{
-                  display: "grid",
-                  gridTemplateColumns: `60px repeat(${gridCols}, 1fr) 50px`,
-                  gap: 0.5,
-                  mb: 0.5,
-                  ...(r === entradaRows && {
-                    borderTop: `2px solid ${theme.palette.divider}`,
-                    pt: 0.5,
-                  }),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, fontSize: "0.8rem" }}
                 >
-                  {showLabel && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: "0.65rem",
-                        color: isEntrada
-                          ? theme.palette.primary.main
-                          : theme.palette.warning.main,
-                        textTransform: "uppercase",
-                        writingMode: gridRows > 4 && isEntrada ? "vertical-lr" : undefined,
-                        transform: gridRows > 4 && isEntrada ? "rotate(180deg)" : undefined,
-                      }}
-                    >
-                      {label}
-                    </Typography>
-                  )}
-                </Box>
-                {Array.from({ length: gridCols }, (_, c) => (
-                  <TextField
-                    key={c}
-                    size="small"
-                    type="number"
-                    inputProps={{
-                      min: 0,
-                      style: {
-                        textAlign: "center",
-                        padding: "6px 4px",
-                        fontSize: "0.85rem",
-                      },
-                    }}
-                    sx={{ "& .MuiOutlinedInput-root": { minWidth: 0 } }}
-                    {...register(`castNetCounts.${r}.${c}`)}
-                  />
-                ))}
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 600, fontSize: "0.8rem" }}
-                  >
-                    {calculations.rowSubtotals[r] || 0}
-                  </Typography>
-                </Box>
+                  {calculations.rowSubtotals[r] || 0}
+                </Typography>
               </Box>
-            );
-          })}
+            </Box>
+          ))}
         </CardContent>
       </Card>
 

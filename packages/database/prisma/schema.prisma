@@ -35,6 +35,8 @@ model User {
   populationSamplings PopulationSampling[] @relation("populationSamplingCreator")
   dailyWaterControls  DailyWaterControl[]  @relation("dailyWaterControlCreator")
 
+  weeklyFeedProjections WeeklyFeedProjection[] @relation("weeklyFeedProjectionCreator")
+
   @@index([companyId])
   @@map("users")
 }
@@ -141,6 +143,10 @@ model Farm {
   populationSamplings PopulationSampling[]
   dailyWaterControls  DailyWaterControl[]
 
+  feedSupplierTables    FeedSupplierTable[]
+  fcaReferences         FCAReference[]
+  weeklyFeedProjections WeeklyFeedProjection[]
+
   @@index([companyId])
   @@map("farms")
 }
@@ -185,6 +191,9 @@ model Pond {
   preweightPondEntries  PreweightPondEntry[]
   populationSamplings   PopulationSampling[]
   dailyWaterPondEntries DailyWaterPondEntry[]
+
+  feedProjectionPondDays FeedProjectionPondDay[]
+  pondWeeklyAnalyses     PondWeeklyAnalysis[]
 
   @@index([farmId])
   @@map("ponds")
@@ -832,6 +841,8 @@ model PopulationSampling {
   pond      Pond @relation(fields: [pondId], references: [id])
   createdBy User @relation("populationSamplingCreator", fields: [createdById], references: [id])
 
+  pondWeeklyAnalyses PondWeeklyAnalysis[]
+
   @@index([farmId])
   @@index([pondId])
   @@index([samplingDate])
@@ -878,4 +889,131 @@ model DailyWaterPondEntry {
   @@index([dailyWaterControlId])
   @@index([pondId])
   @@map("daily_water_pond_entries")
+}
+
+// ============================================
+// Module 10: Feed Projection & Analysis
+// ============================================
+
+model FeedSupplierTable {
+  id           String   @id @default(uuid())
+  supplierName String   @map("supplier_name")
+  weightGrams  Float    @map("weight_grams")
+  bwPercent    Float    @map("bw_percent")
+  farmId       String   @map("farm_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  farm Farm @relation(fields: [farmId], references: [id])
+
+  @@unique([farmId, supplierName, weightGrams])
+  @@index([farmId])
+  @@map("feed_supplier_tables")
+}
+
+model FCAReference {
+  id                  String   @id @default(uuid())
+  farmId              String   @map("farm_id")
+  weightFrom          Float    @map("weight_from")
+  weightTo            Float    @map("weight_to")
+  expectedWeeklyGrowth Float   @map("expected_weekly_growth")
+  weeklyGrowthPercent Float    @map("weekly_growth_percent")
+  expectedFCA         Float    @map("expected_fca")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  farm Farm @relation(fields: [farmId], references: [id])
+
+  @@index([farmId])
+  @@map("fca_references")
+}
+
+model WeeklyFeedProjection {
+  id               String   @id @default(uuid())
+  farmId           String   @map("farm_id")
+  weekStartDate    DateTime @map("week_start_date")
+  weekEndDate      DateTime @map("week_end_date")
+  status           String   @default("draft")
+  totalWeeklyFeedKg Float?  @map("total_weekly_feed_kg")
+  supplierName     String   @map("supplier_name")
+  notes            String?
+  createdById      String   @map("created_by_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  farm      Farm @relation(fields: [farmId], references: [id])
+  createdBy User @relation("weeklyFeedProjectionCreator", fields: [createdById], references: [id])
+
+  feedProjectionPondDays FeedProjectionPondDay[]
+  pondWeeklyAnalyses     PondWeeklyAnalysis[]
+
+  @@unique([farmId, weekStartDate])
+  @@index([farmId])
+  @@map("weekly_feed_projections")
+}
+
+model FeedProjectionPondDay {
+  id                      String   @id @default(uuid())
+  weeklyFeedProjectionId  String   @map("weekly_feed_projection_id")
+  pondId                  String   @map("pond_id")
+  dayDate                 DateTime @map("day_date")
+  dayIndex                Int      @map("day_index")
+  isRealData              Boolean  @default(false) @map("is_real_data")
+  hectares                Float
+  weeklyGrowthRate        Float?   @map("weekly_growth_rate")
+  dailyGrowthRate         Float?   @map("daily_growth_rate")
+  weight                  Float
+  weightProjected         Float?   @map("weight_projected")
+  weightDeviation         Float?   @map("weight_deviation")
+  density                 Float
+  biomassLbs              Float?   @map("biomass_lbs")
+  biomassKg               Float?   @map("biomass_kg")
+  bwPercent               Float?   @map("bw_percent")
+  feedQuantityLbs         Float?   @map("feed_quantity_lbs")
+  feedQuantityOverride    Float?   @map("feed_quantity_override")
+  khdFeed                 Float?   @map("khd_feed")
+  feedType                String?  @map("feed_type")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  weeklyFeedProjection WeeklyFeedProjection @relation(fields: [weeklyFeedProjectionId], references: [id], onDelete: Cascade)
+  pond                 Pond                 @relation(fields: [pondId], references: [id])
+
+  @@unique([weeklyFeedProjectionId, pondId, dayDate])
+  @@index([weeklyFeedProjectionId])
+  @@index([pondId])
+  @@map("feed_projection_pond_days")
+}
+
+model PondWeeklyAnalysis {
+  id                       String   @id @default(uuid())
+  weeklyFeedProjectionId   String   @map("weekly_feed_projection_id")
+  pondId                   String   @map("pond_id")
+  populationSamplingId     String?  @map("population_sampling_id")
+  weekDate                 DateTime @map("week_date")
+  projectedWeight          Float    @map("projected_weight")
+  actualWeight             Float?   @map("actual_weight")
+  weightDeviationPercent   Float?   @map("weight_deviation_percent")
+  projectedBiomassKg       Float?   @map("projected_biomass_kg")
+  atarrayaBiomassKg        Float?   @map("atarraya_biomass_kg")
+  consumptionBiomassKg     Float?   @map("consumption_biomass_kg")
+  biomassDiscrepancyPercent Float?  @map("biomass_discrepancy_percent")
+  fcaAtarraya              Float?   @map("fca_atarraya")
+  fcaConsumption           Float?   @map("fca_consumption")
+  accumulatedFeedKg        Float?   @map("accumulated_feed_kg")
+  survivalAtarraya         Float?   @map("survival_atarraya")
+  survivalConsumption      Float?   @map("survival_consumption")
+  alertLevel               String?  @map("alert_level")
+  alertReasons             Json?    @map("alert_reasons")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  weeklyFeedProjection WeeklyFeedProjection @relation(fields: [weeklyFeedProjectionId], references: [id], onDelete: Cascade)
+  pond                 Pond                 @relation(fields: [pondId], references: [id])
+  populationSampling   PopulationSampling?  @relation(fields: [populationSamplingId], references: [id])
+
+  @@unique([weeklyFeedProjectionId, pondId])
+  @@index([weeklyFeedProjectionId])
+  @@index([pondId])
+  @@map("pond_weekly_analyses")
 }

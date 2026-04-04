@@ -436,7 +436,7 @@ export function PreweightForm() {
         const pondId = watched.entries?.[eIdx]?.pondId;
         const pond = ponds?.find((p) => p.id === pondId);
         const pondLabel = pond
-          ? `${pond.code} — ${pond.name}`
+          ? pond.name
           : t("sampling.preweight.selectPond");
 
         return (
@@ -499,7 +499,7 @@ export function PreweightForm() {
                       selectedPondIds.includes(p.id) && p.id !== pondId
                     }
                   >
-                    {p.code} — {p.name}
+                    {p.name}
                   </MenuItem>
                 ))}
               </TextField>

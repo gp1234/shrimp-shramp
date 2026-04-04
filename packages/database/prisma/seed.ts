@@ -6,6 +6,40 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🦐 Seeding Shrampi database...\n");
 
+  // Clean existing data (reverse dependency order)
+  await prisma.revenueRecord.deleteMany();
+  await prisma.productionCost.deleteMany();
+  await prisma.operationalCost.deleteMany();
+  await prisma.inventoryMovement.deleteMany();
+  await prisma.inventoryItem.deleteMany();
+  await prisma.feedingLog.deleteMany();
+  await prisma.waterQualityLog.deleteMany();
+  await prisma.mortalityRecord.deleteMany();
+  await prisma.harvestRecord.deleteMany();
+  await prisma.stockingRecord.deleteMany();
+  await prisma.cycleStage.deleteMany();
+  await prisma.cycle.deleteMany();
+  await prisma.expenseCategory.deleteMany();
+  await prisma.feedInventory.deleteMany();
+  await prisma.feedType.deleteMany();
+  await prisma.taskAssignment.deleteMany();
+  await prisma.task.deleteMany();
+  await prisma.shift.deleteMany();
+  await prisma.attendance.deleteMany();
+  await prisma.staff.deleteMany();
+  await prisma.preweightSample.deleteMany();
+  await prisma.preweightPondEntry.deleteMany();
+  await prisma.weeklyPreweight.deleteMany();
+  await prisma.populationSampling.deleteMany();
+  await prisma.dailyWaterPondEntry.deleteMany();
+  await prisma.dailyWaterControl.deleteMany();
+  await prisma.sensorReading.deleteMany();
+  await prisma.sensor.deleteMany();
+  await prisma.device.deleteMany();
+  await prisma.pondZone.deleteMany();
+  await prisma.pond.deleteMany();
+  console.log("🧹 Cleaned existing data");
+
   // ──────────────────────────────────────────
   // 1. Roles
   // ──────────────────────────────────────────
@@ -32,6 +66,9 @@ async function main() {
     "inventory",
     "personnel",
     "financial",
+    "preweight",
+    "population_sampling",
+    "water_control",
     "users",
     "settings",
   ];
@@ -434,14 +471,14 @@ async function main() {
   // ──────────────────────────────────────────
   const categories = await Promise.all(
     [
-      "Labor",
-      "Feed",
-      "Chemicals",
-      "Energy",
-      "Equipment",
-      "Maintenance",
-      "Transport",
-      "Other",
+      "seed.category.labor",
+      "seed.category.feed",
+      "seed.category.chemicals",
+      "seed.category.energy",
+      "seed.category.equipment",
+      "seed.category.maintenance",
+      "seed.category.transport",
+      "seed.category.other",
     ].map((name) =>
       prisma.expenseCategory.upsert({
         where: { name },
@@ -455,30 +492,30 @@ async function main() {
   // ──────────────────────────────────────────
   // 14. Production Costs (for completed cycle)
   // ──────────────────────────────────────────
-  const feedCat = categories.find((c) => c.name === "Feed")!;
-  const laborCat = categories.find((c) => c.name === "Labor")!;
-  const energyCat = categories.find((c) => c.name === "Energy")!;
+  const feedCat = categories.find((c) => c.name === "seed.category.feed")!;
+  const laborCat = categories.find((c) => c.name === "seed.category.labor")!;
+  const energyCat = categories.find((c) => c.name === "seed.category.energy")!;
 
   await prisma.productionCost.createMany({
     data: [
       {
         cycleId: cycle3.id,
         categoryId: feedCat.id,
-        description: "Feed supply for entire cycle",
+        description: "seed.cost.feedSupply",
         amount: 32000,
         date: new Date("2024-07-10"),
       },
       {
         cycleId: cycle3.id,
         categoryId: laborCat.id,
-        description: "Labor for 3 months",
+        description: "seed.cost.labor3Months",
         amount: 8500,
         date: new Date("2024-07-10"),
       },
       {
         cycleId: cycle3.id,
         categoryId: energyCat.id,
-        description: "Electricity and diesel",
+        description: "seed.cost.electricityDiesel",
         amount: 5071.49,
         date: new Date("2024-07-10"),
       },
@@ -492,7 +529,7 @@ async function main() {
   await prisma.revenueRecord.create({
     data: {
       cycleId: cycle3.id,
-      description: "Full harvest sale to Pacific Seafood Exports",
+      description: "seed.revenue.harvestSale",
       amount: 61118.98,
       date: new Date("2024-07-12"),
       source: "Pacific Seafood Exports",

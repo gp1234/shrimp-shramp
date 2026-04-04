@@ -162,7 +162,7 @@ export function PopulationSamplingList() {
                         {new Date(row.samplingDate).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        {row.pond.code} — {row.pond.name}
+                        {row.pond.name}
                       </TableCell>
                       <TableCell align="right">{row.totalCount}</TableCell>
                       <TableCell align="right">
@@ -236,7 +236,7 @@ export function PopulationSamplingList() {
           <Typography>
             {t("crud.deleteMsg", {
               name: deleteTarget
-                ? `${deleteTarget.pond.code} — ${new Date(deleteTarget.samplingDate).toLocaleDateString()}`
+                ? `${deleteTarget.pond.name} — ${new Date(deleteTarget.samplingDate).toLocaleDateString()}`
                 : "",
             })}
           </Typography>

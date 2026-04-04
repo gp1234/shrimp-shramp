@@ -188,7 +188,8 @@ export function FinancialPage() {
   // Cost breakdown
   const costByCat: Record<string, number> = {};
   costs?.forEach((c) => {
-    costByCat[c.category.name] = (costByCat[c.category.name] || 0) + c.amount;
+    const catLabel = t(c.category.name, { defaultValue: c.category.name });
+    costByCat[catLabel] = (costByCat[catLabel] || 0) + c.amount;
   });
   const chartData = Object.entries(costByCat)
     .map(([name, value]) => ({ name, value }))
@@ -357,13 +358,13 @@ export function FinancialPage() {
                     >
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {c.description}
+                          {t(c.description, { defaultValue: c.description })}
                         </Typography>
                         <Typography
                           variant="caption"
                           sx={{ color: "text.secondary" }}
                         >
-                          {c.category.name} •{" "}
+                          {t(c.category.name, { defaultValue: c.category.name })} •{" "}
                           {new Date(c.date).toLocaleDateString()}
                         </Typography>
                       </Box>
@@ -402,7 +403,7 @@ export function FinancialPage() {
                     >
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {r.description}
+                          {t(r.description, { defaultValue: r.description })}
                         </Typography>
                         <Typography
                           variant="caption"
