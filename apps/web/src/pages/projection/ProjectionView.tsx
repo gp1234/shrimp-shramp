@@ -42,6 +42,9 @@ import {
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon,
   Add as AddIcon,
+  ChevronLeft as PrevIcon,
+  ChevronRight as NextIcon,
+  CalendarMonth as CalendarIcon,
 } from "@mui/icons-material";
 import type {
   WeeklyProjectionResponse,
@@ -353,6 +356,41 @@ export function ProjectionView() {
     });
   };
 
+  const navigateToWeek = useCallback(
+    async (date: Date) => {
+      if (!farmId) return;
+      try {
+        const dateStr = toDateStr(date);
+        const res = await api.get("/projection/weekly", {
+          params: { farmId, page: 1, limit: 1 },
+        });
+        const projections = res.data.data ?? [];
+        // Find one whose weekStartDate matches
+        const match = projections.find((p: any) =>
+          p.weekStartDate.startsWith(dateStr),
+        );
+        if (match) {
+          navigate(`/projection/${match.id}`);
+        } else {
+          // Try broader search
+          const res2 = await api.get("/projection/weekly", {
+            params: { farmId, page: 1, limit: 50 },
+          });
+          const all = res2.data.data ?? [];
+          const found = all.find((p: any) =>
+            p.weekStartDate.startsWith(dateStr),
+          );
+          if (found) {
+            navigate(`/projection/${found.id}`);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    },
+    [farmId, navigate],
+  );
+
   const handleRealDataCommit = useCallback(
     (pondId: string, dayDate: string, field: string, value: number) => {
       const payload: any = { pondId, dayDate };
@@ -553,10 +591,48 @@ export function ProjectionView() {
           color={STATUS_COLORS[projection.status] ?? "default"}
           size="small"
         />
-        <Typography variant="body2" color="text.secondary">
-          {new Date(projection.weekStartDate).toLocaleDateString("es-EC")} —{" "}
-          {new Date(projection.weekEndDate).toLocaleDateString("es-EC")}
-        </Typography>
+
+        {/* Week navigator */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <IconButton
+            size="small"
+            onClick={() => {
+              const prev = new Date(projection.weekStartDate);
+              prev.setDate(prev.getDate() - 7);
+              navigateToWeek(prev);
+            }}
+          >
+            <PrevIcon />
+          </IconButton>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <CalendarIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+            <TextField
+              type="date"
+              size="small"
+              value={projection.weekStartDate.split("T")[0]}
+              onChange={(e) => {
+                const d = new Date(e.target.value);
+                navigateToWeek(snapToFriday(d));
+              }}
+              inputProps={{ style: { fontSize: "0.85rem", padding: "4px 8px" } }}
+              sx={{ width: 150 }}
+            />
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => {
+              const next = new Date(projection.weekStartDate);
+              next.setDate(next.getDate() + 7);
+              navigateToWeek(next);
+            }}
+          >
+            <NextIcon />
+          </IconButton>
+          <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+            — {new Date(projection.weekEndDate).toLocaleDateString("es-EC")}
+          </Typography>
+        </Box>
+
         <Typography variant="body2" color="text.secondary">
           {t("projection.supplier")}: <strong>{projection.supplierName}</strong>
         </Typography>

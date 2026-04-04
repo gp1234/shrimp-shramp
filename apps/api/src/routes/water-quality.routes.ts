@@ -57,6 +57,25 @@ waterQualityRouter.post(
   },
 );
 
+// DELETE /api/v1/water-quality/:id
+waterQualityRouter.delete(
+  "/:id",
+  authorize("Admin", "Farm Manager"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      await prisma.waterQualityLog.delete({
+        where: { id: req.params.id as string },
+      });
+      res.json({ success: true, message: "Water quality log deleted" });
+    } catch (error) {
+      console.error(error);
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to delete water quality log" });
+    }
+  },
+);
+
 // GET /api/v1/water-quality/pond/:pondId/summary
 waterQualityRouter.get(
   "/pond/:pondId/summary",

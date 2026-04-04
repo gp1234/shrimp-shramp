@@ -84,7 +84,7 @@ export function WaterQualityPage() {
     queryKey: ["water-quality", farmId],
     queryFn: () =>
       api
-        .get("/water-quality/logs", { params: { farmId } })
+        .get("/water-quality", { params: { farmId } })
         .then((r) => r.data.data),
     enabled: !!farmId,
   });
@@ -97,7 +97,7 @@ export function WaterQualityPage() {
   });
 
   const createMut = useMutation({
-    mutationFn: (data: any) => api.post("/water-quality/logs", data),
+    mutationFn: (data: any) => api.post("/water-quality", data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["water-quality"] });
       setDialogOpen(false);
@@ -107,7 +107,7 @@ export function WaterQualityPage() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => api.delete(`/water-quality/logs/${id}`),
+    mutationFn: (id: string) => api.delete(`/water-quality/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["water-quality"] });
       setDeleteTarget(null);

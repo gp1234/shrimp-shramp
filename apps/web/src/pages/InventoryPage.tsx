@@ -65,11 +65,11 @@ export function InventoryPage() {
 
   const { data: items, isLoading } = useQuery<InventoryItem[]>({
     queryKey: ["inventory"],
-    queryFn: () => api.get("/inventory").then((r) => r.data.data),
+    queryFn: () => api.get("/inventory/items").then((r) => r.data.data),
   });
 
   const createMut = useMutation({
-    mutationFn: (data: any) => api.post("/inventory", data),
+    mutationFn: (data: any) => api.post("/inventory/items", data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inventory"] });
       setDialogOpen(false);
@@ -80,7 +80,7 @@ export function InventoryPage() {
 
   const updateMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
-      api.put(`/inventory/${id}`, data),
+      api.put(`/inventory/items/${id}`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inventory"] });
       setDialogOpen(false);
@@ -91,7 +91,7 @@ export function InventoryPage() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => api.delete(`/inventory/${id}`),
+    mutationFn: (id: string) => api.delete(`/inventory/items/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inventory"] });
       setDeleteTarget(null);
