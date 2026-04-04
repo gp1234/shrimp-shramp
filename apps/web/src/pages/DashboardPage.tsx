@@ -535,7 +535,7 @@ export function DashboardPage() {
                                 variant="body2"
                                 sx={{ fontWeight: 600, color: "text.primary" }}
                               >
-                                {pond.code}
+                                {pond.name}
                               </Typography>
                               <Typography
                                 variant="caption"

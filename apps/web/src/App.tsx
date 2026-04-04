@@ -12,6 +12,14 @@ import { InventoryPage } from "./pages/InventoryPage";
 import { PersonnelPage } from "./pages/PersonnelPage";
 import { FinancialPage } from "./pages/FinancialPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { PopulationSamplingList } from "./pages/sampling/PopulationSamplingList";
+import { PopulationSamplingForm } from "./pages/sampling/PopulationSamplingForm";
+import { PreweightList } from "./pages/sampling/PreweightList";
+import { PreweightForm } from "./pages/sampling/PreweightForm";
+import { DailyWaterControlList } from "./pages/water-control/DailyWaterControlList";
+import { DailyWaterControlForm } from "./pages/water-control/DailyWaterControlForm";
+import { ProjectionList } from "./pages/projection/ProjectionList";
+import { ProjectionView } from "./pages/projection/ProjectionView";
 import { Box, CircularProgress } from "@mui/material";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -81,6 +89,19 @@ export default function App() {
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/personnel" element={<PersonnelPage />} />
                 <Route path="/financial" element={<FinancialPage />} />
+                <Route path="/sampling/preweight" element={<PreweightList />} />
+                <Route path="/sampling/preweight/new" element={<PreweightForm />} />
+                <Route path="/sampling/preweight/:id" element={<PreweightForm />} />
+                <Route path="/sampling/population" element={<PopulationSamplingList />} />
+                <Route path="/sampling/population/new" element={<PopulationSamplingForm />} />
+                <Route path="/sampling/population/:id" element={<PopulationSamplingForm />} />
+                <Route path="/water-control" element={<DailyWaterControlList />} />
+                <Route path="/water-control/new" element={<DailyWaterControlForm />} />
+                <Route path="/water-control/:id" element={<DailyWaterControlForm />} />
+                <Route path="/projection" element={<ProjectionList />} />
+                <Route path="/projections" element={<ProjectionList />} />
+                <Route path="/projection/new" element={<ProjectionView />} />
+                <Route path="/projection/:id" element={<ProjectionView />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>

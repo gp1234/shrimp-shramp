@@ -214,7 +214,7 @@ export function FeedingPage() {
                       sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
                     >
                       <Chip
-                        label={log.pond.code}
+                        label={log.pond.name}
                         size="small"
                         sx={{
                           background: alpha(theme.palette.primary.main, 0.15),
@@ -317,7 +317,7 @@ export function FeedingPage() {
           >
             {ponds?.map((p) => (
               <MenuItem key={p.id} value={p.id}>
-                {p.code} — {p.name}
+                {p.name}
               </MenuItem>
             ))}
           </TextField>

@@ -1,4 +1,17 @@
 // ============================================
+// Feed Projection & Analysis Types
+// ============================================
+
+export type {
+  PondDayProjection,
+  PondWeeklySummary,
+  WeeklyProjectionResponse,
+  CreateProjectionRequest,
+  UpdateRealDataRequest,
+  PondAnalysis,
+} from './projection';
+
+// ============================================
 // API Request / Response Types
 // ============================================
 
@@ -144,3 +157,157 @@ export type TaskStatusType =
   | "COMPLETED"
   | "CANCELLED";
 export type TaskPriorityType = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+
+// ============================================
+// Sampling & Field Forms Types
+// ============================================
+
+// --- Weekly Pre-weight (Prepeso Semanal) ---
+
+export interface PreweightSampleInput {
+  number: number;
+  weight: number;
+}
+
+export interface PreweightSampleResponse extends PreweightSampleInput {
+  id: string;
+  preweightPondEntryId: string;
+  averageWeight: number;
+  createdAt: string;
+}
+
+export interface PreweightPondEntryInput {
+  pondId: string;
+  growthRate: number;
+  mortality?: number;
+  disease?: number;
+  molt?: number;
+  cultureDays: number;
+  samples: PreweightSampleInput[];
+}
+
+export interface PreweightPondEntryResponse {
+  id: string;
+  weeklyPreweightId: string;
+  pondId: string;
+  growthRate: number;
+  mortality: number;
+  disease: number;
+  molt: number;
+  cultureDays: number;
+  totalNumber: number;
+  totalWeight: number;
+  averageWeight: number;
+  createdAt: string;
+  updatedAt: string;
+  pond: { name: string; code: string };
+  samples: PreweightSampleResponse[];
+}
+
+export interface PreweightCreateRequest {
+  farmId: string;
+  samplingDate: string;
+  notes?: string;
+  entries: PreweightPondEntryInput[];
+}
+
+export interface PreweightResponse {
+  id: string;
+  farmId: string;
+  samplingDate: string;
+  notes: string | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  entries: PreweightPondEntryResponse[];
+}
+
+// --- Population Sampling (Muestreo de Poblacion con Atarraya) ---
+
+export interface PopulationSamplingCreateRequest {
+  farmId: string;
+  pondId: string;
+  samplingDate: string;
+  hectares: number;
+  stockingCount: number;
+  castNetCounts: number[];
+  gridColumns?: number;
+  entradaRows?: number;
+  salidaRows?: number;
+  numberOfThrows: number;
+  averageWeight: number;
+  waterLevel: number;
+  oldMolts?: number;
+  freshMolts?: number;
+  diseaseCount?: number;
+  observations?: string;
+}
+
+export interface PopulationSamplingResponse {
+  id: string;
+  farmId: string;
+  pondId: string;
+  samplingDate: string;
+  hectares: number;
+  stockingCount: number;
+  castNetCounts: number[];
+  gridColumns: number;
+  entradaRows: number;
+  salidaRows: number;
+  numberOfThrows: number;
+  totalCount: number;
+  countPerThrow: number;
+  shrimpPerSqMeter: number;
+  averageWeight: number;
+  waterLevel: number;
+  oldMolts: number;
+  oldMoltsPercent: number;
+  freshMolts: number;
+  freshMoltsPercent: number;
+  diseaseCount: number;
+  diseasePercent: number;
+  observations: string | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  pond: { name: string; code: string };
+}
+
+// --- Daily Gate & Water Control ---
+
+export interface DailyWaterPondEntryInput {
+  pondId: string;
+  gateId: string;
+  gateHeightInches?: number;
+  turbiditySecchiCm?: number;
+  waterColor?: string;
+  observations?: string;
+}
+
+export interface DailyWaterPondEntryResponse extends DailyWaterPondEntryInput {
+  id: string;
+  dailyWaterControlId: string;
+  createdAt: string;
+  updatedAt: string;
+  pond: { name: string; code: string };
+}
+
+export interface DailyWaterControlCreateRequest {
+  farmId: string;
+  recordDate: string;
+  recordTime: "AM" | "PM";
+  farmSection?: string;
+  entries: DailyWaterPondEntryInput[];
+}
+
+export interface DailyWaterControlResponse {
+  id: string;
+  farmId: string;
+  recordDate: string;
+  recordTime: string;
+  farmSection: string | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  entries: DailyWaterPondEntryResponse[];
+}

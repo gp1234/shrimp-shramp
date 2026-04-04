@@ -141,7 +141,7 @@ export function PondsPage() {
   const handleSubmit = () => {
     const payload = {
       name: form.name,
-      code: form.code,
+      code: form.name.trim().toUpperCase().replace(/\s+/g, "-"),
       area: parseFloat(form.area),
       depth: form.depth ? parseFloat(form.depth) : null,
       farmId: currentFarm?.id || form.farmId,
@@ -246,12 +246,6 @@ export function PondsPage() {
                         </Box>
                         <Box>
                           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                            {pond.code}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "text.secondary" }}
-                          >
                             {pond.name}
                           </Typography>
                         </Box>
@@ -385,13 +379,6 @@ export function PondsPage() {
             required
           />
           <TextField
-            label={t("crud.code")}
-            value={form.code}
-            onChange={(e) => setForm({ ...form, code: e.target.value })}
-            fullWidth
-            required
-          />
-          <TextField
             label={t("crud.farm")}
             value={currentFarm?.name || ""}
             fullWidth
@@ -465,7 +452,7 @@ export function PondsPage() {
             variant="contained"
             onClick={handleSubmit}
             disabled={
-              !form.name || !form.code || !form.area || !currentFarm?.id
+              !form.name || !form.area || !currentFarm?.id
             }
           >
             {editingPond ? t("crud.save") : t("crud.create")}
